@@ -17,27 +17,39 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { category?: string; count?: number; resume?: unknown };
+  let body: {
+    category?: string;
+    count?: number;
+    resume?: unknown;
+    topic?: string;
+  };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  const topic = typeof body.topic === "string" ? body.topic.trim() : "";
   const category = (
     validCategories.includes(body.category as Category)
       ? body.category
-      : "genai"
+      : topic
+        ? mapTopicToCategory(topic)
+        : "genai"
   ) as Category;
   const count = Math.min(Math.max(body.count ?? 4, 1), 8);
   const meta = categoryMeta[category];
 
-  const system = `You are a senior AI-engineering interviewer preparing a specific candidate for interviews at top product companies. Ask sharp, resume-specific questions and write strong model answers in the candidate's first-person voice, grounded ONLY in the candidate's real experience below. Be concrete and technical. Never invent facts not implied by the resume.
+  const system = `You are a senior AI-engineering interviewer preparing a specific candidate for interviews at top product companies. Ask sharp, technical questions and write strong model answers in the candidate's first-person voice. Be concrete. When the candidate has real experience with the subject, ground the answer in it; otherwise give a correct, interview-grade answer. Never fabricate resume facts.
 
 CANDIDATE CONTEXT:
 ${resumeContext(body.resume as never)}`;
 
-  const user = `Generate ${count} interview questions in the "${meta.label}" area (${meta.blurb}). Vary difficulty across beginner, intermediate, advanced, and staff. Return STRICT JSON of the form:
+  const user = topic
+    ? `Generate ${count} interview questions specifically about "${topic}". Cover core concepts, practical trade-offs, and how it applies in production AI systems. Vary difficulty across beginner, intermediate, advanced, and staff. Return STRICT JSON:
+{"questions":[{"question":"...","answer":"...","difficulty":"beginner|intermediate|advanced|staff","tags":["${topic}"]}]}
+The "answer" must be a strong, specific model answer (4-8 sentences), first person where the candidate has relevant experience. No markdown.`
+    : `Generate ${count} interview questions in the "${meta.label}" area (${meta.blurb}). Vary difficulty across beginner, intermediate, advanced, and staff. Return STRICT JSON of the form:
 {"questions":[{"question":"...","answer":"...","difficulty":"beginner|intermediate|advanced|staff","tags":["...","..."]}]}
 The "answer" must be a strong, specific model answer (4-8 sentences) in the candidate's first person. Do not include markdown.`;
 
@@ -73,4 +85,14 @@ The "answer" must be a strong, specific model answer (4-8 sentences) in the cand
       { status: 500 }
     );
   }
+}
+
+// Best-fit category (for the badge) from a free-form skill/topic.
+function mapTopicToCategory(topic: string): Category {
+  const t = topic.toLowerCase();
+  if (/(system|scal|kubernetes|docker|triton|sagemaker|vertex|mlops|ci\/cd|monitor|etl|pipeline|infra)/.test(t))
+    return "systemdesign";
+  if (/(python|typescript|api|fastapi|sql|pandas|data structure|algorithm|backend|rest)/.test(t))
+    return "backend";
+  return "genai";
 }

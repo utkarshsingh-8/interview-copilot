@@ -8,6 +8,7 @@ import {
   type Question,
 } from "@/lib/questions";
 import { useProgress } from "@/lib/progress";
+import { readResume } from "@/lib/resumeStore";
 
 type InterviewType = {
   key: string;
@@ -16,6 +17,48 @@ type InterviewType = {
   cats: Category[];
   desc: string;
 };
+
+// Skill / domain topics for topic-based mock rounds (AI-generated questions).
+const TOPICS: string[] = [
+  "Generative AI",
+  "Retrieval-Augmented Generation (RAG)",
+  "Vector Databases",
+  "LangChain",
+  "LlamaIndex",
+  "Agentic Workflows",
+  "LangGraph",
+  "Prompt Engineering",
+  "Model Evaluation",
+  "Fine-Tuning",
+  "LoRA",
+  "Python",
+  "TypeScript",
+  "API Design",
+  "FastAPI",
+  "Data Structures",
+  "Algorithms",
+  "Linear Algebra",
+  "Probability",
+  "Machine Learning",
+  "Deep Learning",
+  "PyTorch",
+  "TensorFlow",
+  "Transformers",
+  "Data Wrangling",
+  "Pandas",
+  "SQL",
+  "ETL Pipelines",
+  "MLOps",
+  "AWS SageMaker",
+  "Google Vertex AI",
+  "Docker",
+  "Kubernetes",
+  "Triton Inference Server",
+  "CI/CD",
+  "Model Monitoring",
+  "Systems Thinking",
+  "AI Ethics",
+];
 
 const TYPES: InterviewType[] = [
   { key: "hr", label: "HR Round", emoji: "🤝", cats: ["intro", "behavioral"], desc: "Story, motivation, fit" },
@@ -40,11 +83,14 @@ function pick(cats: Category[], n: number): Question[] {
   return shuffled.slice(0, Math.min(n, shuffled.length));
 }
 
-type Phase = "pick" | "run" | "done";
+type Phase = "pick" | "loading" | "run" | "done";
 
 export default function MockView() {
   const { progress, addMockSession } = useProgress();
   const [phase, setPhase] = useState<Phase>("pick");
+  const [tab, setTab] = useState<"rounds" | "skills">("rounds");
+  const [topicQuery, setTopicQuery] = useState("");
+  const [genError, setGenError] = useState<string | null>(null);
   const [type, setType] = useState<InterviewType | null>(null);
   const [set, setSet] = useState<Question[]>([]);
   const [idx, setIdx] = useState(0);
@@ -60,6 +106,31 @@ export default function MockView() {
     setScores([]);
     setPhase("run");
   };
+
+  async function startTopic(topic: string) {
+    setGenError(null);
+    setType({ key: `topic-${topic}`, label: topic, emoji: "🎯", cats: [], desc: topic });
+    setPhase("loading");
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, count: 5, resume: readResume() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Generation failed");
+      if (!Array.isArray(data.questions) || data.questions.length === 0)
+        throw new Error("No questions returned. Try again.");
+      setSet(data.questions);
+      setIdx(0);
+      setRevealed(false);
+      setScores([]);
+      setPhase("run");
+    } catch (e) {
+      setGenError(e instanceof Error ? e.message : "Failed");
+      setPhase("pick");
+    }
+  }
 
   const rate = (score: number) => {
     const next = [...scores, score];
@@ -93,8 +164,12 @@ export default function MockView() {
           Pick a round
         </h1>
         <p className="mt-2 text-[var(--ink-soft)] text-sm">
-          5 questions, self-rate each, get a score. Grounded in your resume.
+          5 questions, self-rate each, get a score.
         </p>
+
+        {genError && (
+          <p className="mt-3 text-sm text-[var(--rose-ink)]">{genError}</p>
+        )}
 
         {progress.mockSessions.length > 0 && (
           <div className="mt-5 card-flat p-4">
@@ -116,23 +191,90 @@ export default function MockView() {
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          {TYPES.map((t) => (
+        {/* segmented control */}
+        <div className="mt-5 flex gap-1 p-1 rounded-2xl bg-[var(--surface-muted)]">
+          {(["rounds", "skills"] as const).map((s) => (
             <button
-              key={t.key}
-              onClick={() => start(t)}
-              className="card-flat p-4 text-left active:scale-[0.98] transition"
+              key={s}
+              onClick={() => setTab(s)}
+              className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
+                tab === s
+                  ? "bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-sm)]"
+                  : "text-[var(--ink-soft)]"
+              }`}
             >
-              <div className="h-11 w-11 rounded-2xl bg-[var(--violet-soft)] grid place-items-center text-xl mb-3">
-                {t.emoji}
-              </div>
-              <p className="font-bold text-[15px] text-[var(--ink)]">
-                {t.label}
-              </p>
-              <p className="text-xs text-[var(--ink-faint)] mt-0.5">{t.desc}</p>
+              {s === "rounds" ? "Interview rounds" : "By skill / topic"}
             </button>
           ))}
         </div>
+
+        {tab === "rounds" ? (
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {TYPES.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => start(t)}
+                className="card-flat p-4 text-left active:scale-[0.98] transition"
+              >
+                <div className="h-11 w-11 rounded-2xl bg-[var(--violet-soft)] grid place-items-center text-xl mb-3">
+                  {t.emoji}
+                </div>
+                <p className="font-bold text-[15px] text-[var(--ink)]">
+                  {t.label}
+                </p>
+                <p className="text-xs text-[var(--ink-faint)] mt-0.5">
+                  {t.desc}
+                </p>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-4">
+            <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-sm)] mb-3">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="11" cy="11" r="7" stroke="#9a95ac" strokeWidth="2" />
+                <path d="m20 20-3-3" stroke="#9a95ac" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <input
+                value={topicQuery}
+                onChange={(e) => setTopicQuery(e.target.value)}
+                placeholder="Search a skill — RAG, PyTorch, SQL…"
+                className="w-full bg-transparent outline-none text-[15px] placeholder:text-[var(--ink-faint)]"
+              />
+            </div>
+            <p className="text-xs text-[var(--ink-faint)] mb-3">
+              Tap a topic — AI generates a 5-question round on it.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {TOPICS.filter((t) =>
+                t.toLowerCase().includes(topicQuery.trim().toLowerCase())
+              ).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => startTopic(t)}
+                  className="pill bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-sm)] active:scale-95"
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---------- LOADING (topic generation) ----------
+  if (phase === "loading") {
+    return (
+      <div className="fade-up flex flex-col items-center justify-center text-center pt-24">
+        <div className="h-14 w-14 rounded-full border-2 border-[var(--violet)] border-t-transparent animate-spin" />
+        <h2 className="mt-6 text-xl font-extrabold text-[var(--ink)]">
+          Building your round…
+        </h2>
+        <p className="mt-2 text-sm text-[var(--ink-soft)]">
+          Generating {type?.label} questions
+        </p>
       </div>
     );
   }
@@ -164,7 +306,10 @@ export default function MockView() {
 
         <div className="mt-6">
           <p className="text-xs font-semibold text-[var(--violet-ink)]">
-            {type.emoji} {type.label} · {categoryMeta[q.category].label}
+            {type.emoji} {type.label}
+            {type.cats.length > 0 && ` · ${categoryMeta[q.category].label}`}
+            {" · "}
+            <span className="capitalize">{q.difficulty}</span>
           </p>
           <h2 className="mt-2 text-2xl font-extrabold leading-snug text-[var(--ink)]">
             {q.question}
