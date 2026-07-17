@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Avatar3D from "@/components/Avatar3D";
 import ResumeEditor from "@/components/ResumeEditor";
+import ResumeImport from "@/components/ResumeImport";
 import { useResume } from "@/lib/resumeStore";
 import { useSavedQuestions } from "@/lib/savedQuestions";
 import { categoryMeta, type Category, type Question } from "@/lib/questions";
@@ -15,6 +16,8 @@ export default function ProfileView() {
   const { resume, save } = useResume();
   const { saved, replaceAll, clear } = useSavedQuestions();
   const [editing, setEditing] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [editorInitial, setEditorInitial] = useState<Resume | null>(null);
   const [review, setReview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +82,7 @@ export default function ProfileView() {
   function onSaveResume(r: Resume) {
     save(r);
     setEditing(false);
+    setEditorInitial(null);
     setReview(null); // stale review for old resume
   }
 
@@ -96,12 +100,28 @@ export default function ProfileView() {
     }
   }
 
+  if (importing) {
+    return (
+      <ResumeImport
+        onParsed={(r) => {
+          setEditorInitial(r);
+          setImporting(false);
+          setEditing(true);
+        }}
+        onClose={() => setImporting(false)}
+      />
+    );
+  }
+
   if (editing) {
     return (
       <ResumeEditor
-        initial={resume}
+        initial={editorInitial ?? resume}
         onSave={onSaveResume}
-        onCancel={() => setEditing(false)}
+        onCancel={() => {
+          setEditing(false);
+          setEditorInitial(null);
+        }}
       />
     );
   }
@@ -136,10 +156,19 @@ export default function ProfileView() {
           </a>
         ))}
         <button
-          onClick={() => setEditing(true)}
-          className="pill bg-[var(--ink)] text-white !text-xs ml-auto"
+          onClick={() => setImporting(true)}
+          className="pill bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-sm)] !text-xs ml-auto"
         >
-          ✏️ Edit resume
+          📄 Import
+        </button>
+        <button
+          onClick={() => {
+            setEditorInitial(null);
+            setEditing(true);
+          }}
+          className="pill bg-[var(--ink)] text-white !text-xs"
+        >
+          ✏️ Edit
         </button>
       </div>
 
