@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 type Tab = {
   href: string;
@@ -113,9 +114,36 @@ export default function TabBar() {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
+  // Instagram-style: hide when scrolling down, reveal when scrolling up.
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        if (y < 60) setHidden(false);
+        else if (y > last + 8) setHidden(true);
+        else if (y < last - 8) setHidden(false);
+        last = y;
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 safe-bottom pointer-events-none">
-      <div className="mx-auto max-w-md px-4 pb-3">
+      <div
+        className={`mx-auto max-w-md px-4 pb-3 transition-all duration-300 ease-out ${
+          hidden
+            ? "translate-y-[150%] opacity-0"
+            : "translate-y-0 opacity-100"
+        }`}
+      >
         <div className="pointer-events-auto card-flat flex items-center justify-between px-1.5 py-2">
           {tabs.map((t) => {
             const active = isActive(t.href);
