@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { resume } from "@/lib/resume";
+import Avatar3D from "@/components/Avatar3D";
 
 export default function ProfileView() {
   const [review, setReview] = useState<string | null>(null);
@@ -41,8 +42,8 @@ export default function ProfileView() {
     <div className="fade-up">
       {/* header */}
       <div className="flex items-center gap-4">
-        <div className="h-16 w-16 rounded-2xl bg-[var(--violet)] grid place-items-center text-white font-extrabold text-xl shadow-[var(--shadow-sm)]">
-          US
+        <div className="rounded-full shadow-[var(--shadow)] shrink-0">
+          <Avatar3D size={84} />
         </div>
         <div>
           <h1 className="text-2xl font-extrabold text-[var(--ink)]">

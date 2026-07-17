@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { resume } from "@/lib/resume";
+import Avatar3D from "@/components/Avatar3D";
 import {
   categoryMeta,
   questions,
@@ -90,8 +91,8 @@ export default function DashboardView() {
             interview ready
           </h1>
         </div>
-        <div className="h-12 w-12 rounded-full bg-[var(--violet)] grid place-items-center text-white font-bold text-lg shadow-[var(--shadow-sm)]">
-          US
+        <div className="rounded-full shadow-[var(--shadow-sm)] shrink-0">
+          <Avatar3D size={52} />
         </div>
       </div>
 
