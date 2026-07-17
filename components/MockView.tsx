@@ -9,6 +9,7 @@ import {
 } from "@/lib/questions";
 import { useProgress } from "@/lib/progress";
 import { readResume } from "@/lib/resumeStore";
+import { addSaved } from "@/lib/notes";
 
 type InterviewType = {
   key: string;
@@ -18,46 +19,176 @@ type InterviewType = {
   desc: string;
 };
 
-// Skill / domain topics for topic-based mock rounds (AI-generated questions).
-const TOPICS: string[] = [
-  "Generative AI",
-  "Retrieval-Augmented Generation (RAG)",
-  "Vector Databases",
-  "LangChain",
-  "LlamaIndex",
-  "Agentic Workflows",
-  "LangGraph",
-  "Prompt Engineering",
-  "Model Evaluation",
-  "Fine-Tuning",
-  "LoRA",
-  "Python",
-  "TypeScript",
-  "API Design",
-  "FastAPI",
-  "Data Structures",
-  "Algorithms",
-  "Linear Algebra",
-  "Probability",
-  "Machine Learning",
-  "Deep Learning",
-  "PyTorch",
-  "TensorFlow",
-  "Transformers",
-  "Data Wrangling",
-  "Pandas",
-  "SQL",
-  "ETL Pipelines",
-  "MLOps",
-  "AWS SageMaker",
-  "Google Vertex AI",
-  "Docker",
-  "Kubernetes",
-  "Triton Inference Server",
-  "CI/CD",
-  "Model Monitoring",
-  "Systems Thinking",
-  "AI Ethics",
+// Skill / domain topics for topic-based mock rounds (AI-generated questions),
+// grouped for easy browsing. Search filters across every group.
+const TOPIC_GROUPS: { group: string; emoji: string; topics: string[] }[] = [
+  {
+    group: "GenAI & LLMs",
+    emoji: "🧠",
+    topics: [
+      "Generative AI",
+      "Transformers",
+      "Attention Mechanism",
+      "Tokenization",
+      "Embeddings",
+      "Context Windows",
+      "Prompt Engineering",
+      "Function Calling / Tool Use",
+      "Model Context Protocol (MCP)",
+      "Multimodal Models",
+      "Hallucination Mitigation",
+      "Guardrails & Safety",
+      "Prompt Injection",
+    ],
+  },
+  {
+    group: "RAG & Retrieval",
+    emoji: "🔎",
+    topics: [
+      "Retrieval-Augmented Generation (RAG)",
+      "Vector Databases",
+      "Hybrid Search",
+      "Reranking",
+      "Chunking Strategies",
+      "Semantic Caching",
+      "BM25 & Lexical Search",
+      "Query Rewriting",
+    ],
+  },
+  {
+    group: "Agents & Orchestration",
+    emoji: "🤖",
+    topics: [
+      "Agentic Workflows",
+      "LangGraph",
+      "LangChain",
+      "LlamaIndex",
+      "Agent Memory Systems",
+      "Multi-Agent Systems",
+      "ReAct & Planning",
+    ],
+  },
+  {
+    group: "Training & Evaluation",
+    emoji: "🎯",
+    topics: [
+      "Fine-Tuning",
+      "LoRA / PEFT",
+      "Quantization",
+      "RLHF",
+      "DPO",
+      "Model Evaluation",
+      "Ragas",
+      "LangSmith",
+      "Eval Metrics (BLEU/ROUGE)",
+      "Distributed Training",
+    ],
+  },
+  {
+    group: "ML & DL Fundamentals",
+    emoji: "📈",
+    topics: [
+      "Machine Learning",
+      "Deep Learning",
+      "PyTorch",
+      "TensorFlow",
+      "Gradient Descent",
+      "Backpropagation",
+      "Regularization",
+      "Overfitting & Bias-Variance",
+      "Cross-Validation",
+      "Ensemble Methods",
+      "NLP",
+      "Recommendation Systems",
+    ],
+  },
+  {
+    group: "Programming & DSA",
+    emoji: "💻",
+    topics: [
+      "Python",
+      "TypeScript",
+      "Data Structures",
+      "Algorithms",
+      "Time & Space Complexity",
+      "Async / Concurrency",
+      "Testing",
+      "Git",
+    ],
+  },
+  {
+    group: "Backend & APIs",
+    emoji: "⚙️",
+    topics: [
+      "API Design",
+      "FastAPI",
+      "REST vs gRPC",
+      "GraphQL",
+      "WebSockets",
+      "Authentication / JWT",
+      "Rate Limiting",
+      "Caching (Redis)",
+      "Message Queues (Kafka)",
+      "Load Balancing",
+      "Microservices",
+    ],
+  },
+  {
+    group: "Data & Pipelines",
+    emoji: "🗄️",
+    topics: [
+      "SQL",
+      "NoSQL vs SQL",
+      "Database Indexing",
+      "Pandas",
+      "Data Wrangling",
+      "ETL Pipelines",
+      "Batch vs Stream Processing",
+      "Apache Spark",
+      "Apache Airflow",
+      "Data Versioning",
+    ],
+  },
+  {
+    group: "MLOps & Infra",
+    emoji: "☁️",
+    topics: [
+      "MLOps",
+      "Docker",
+      "Kubernetes",
+      "Triton Inference Server",
+      "vLLM & Model Serving",
+      "GPU Optimization",
+      "AWS SageMaker",
+      "Google Vertex AI",
+      "CI/CD",
+      "Model Monitoring",
+      "Experiment Tracking (MLflow/W&B)",
+      "Cost Optimization",
+    ],
+  },
+  {
+    group: "Math & Stats",
+    emoji: "📐",
+    topics: [
+      "Linear Algebra",
+      "Probability",
+      "Statistics",
+      "Hypothesis Testing",
+    ],
+  },
+  {
+    group: "Systems & Ethics",
+    emoji: "🧭",
+    topics: [
+      "System Design",
+      "Systems Thinking",
+      "Scalability",
+      "AI Ethics",
+      "Bias & Fairness",
+      "Data Privacy / PII",
+    ],
+  },
 ];
 
 const TYPES: InterviewType[] = [
@@ -96,6 +227,7 @@ export default function MockView() {
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [scores, setScores] = useState<number[]>([]);
+  const [savedWeak, setSavedWeak] = useState(false);
 
   const start = (t: InterviewType) => {
     const qs = pick(t.cats, 5);
@@ -104,6 +236,7 @@ export default function MockView() {
     setIdx(0);
     setRevealed(false);
     setScores([]);
+    setSavedWeak(false);
     setPhase("run");
   };
 
@@ -125,6 +258,7 @@ export default function MockView() {
       setIdx(0);
       setRevealed(false);
       setScores([]);
+      setSavedWeak(false);
       setPhase("run");
     } catch (e) {
       setGenError(e instanceof Error ? e.message : "Failed");
@@ -242,22 +376,44 @@ export default function MockView() {
                 className="w-full bg-transparent outline-none text-[15px] placeholder:text-[var(--ink-faint)]"
               />
             </div>
-            <p className="text-xs text-[var(--ink-faint)] mb-3">
+            <p className="text-xs text-[var(--ink-faint)] mb-4">
               Tap a topic — AI generates a 5-question round on it.
             </p>
-            <div className="flex flex-wrap gap-2">
-              {TOPICS.filter((t) =>
-                t.toLowerCase().includes(topicQuery.trim().toLowerCase())
-              ).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => startTopic(t)}
-                  className="pill bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-sm)] active:scale-95"
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            {(() => {
+              const q = topicQuery.trim().toLowerCase();
+              const groups = TOPIC_GROUPS.map((g) => ({
+                ...g,
+                topics: g.topics.filter((t) => t.toLowerCase().includes(q)),
+              })).filter((g) => g.topics.length > 0);
+              if (groups.length === 0)
+                return (
+                  <p className="text-sm text-[var(--ink-soft)] text-center py-6">
+                    No topic matches “{topicQuery}”.
+                  </p>
+                );
+              return (
+                <div className="flex flex-col gap-5">
+                  {groups.map((g) => (
+                    <div key={g.group}>
+                      <p className="text-xs font-bold text-[var(--ink-soft)] mb-2">
+                        {g.emoji} {g.group}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {g.topics.map((t) => (
+                          <button
+                            key={t}
+                            onClick={() => startTopic(t)}
+                            className="pill bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-sm)] active:scale-95"
+                          >
+                            {t}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>
@@ -403,9 +559,52 @@ export default function MockView() {
         </div>
       </div>
 
+      {/* weak-topic revision suggestion */}
+      {(() => {
+        const weak = set.filter((_, i) => scores[i] < 75);
+        if (weak.length === 0)
+          return (
+            <div className="mt-4 w-full card-flat p-4 text-center">
+              <p className="text-sm font-semibold text-[var(--ink)]">
+                🎉 No weak spots this round — nice work!
+              </p>
+            </div>
+          );
+        return (
+          <div className="mt-4 w-full card p-5 text-white bg-[var(--violet)] text-left">
+            <p className="font-bold text-lg">Revise these {weak.length}</p>
+            <p className="text-white/80 text-sm mt-1">
+              You rated {weak.length} answer{weak.length > 1 ? "s" : ""} below
+              Strong. Save them to your revision notes and review before the
+              interview.
+            </p>
+            <button
+              onClick={() => {
+                weak.forEach((q) =>
+                  addSaved({
+                    type: "qa",
+                    title: q.question,
+                    content: q.answer,
+                    tags: [type?.label ?? "mock", "revise"],
+                  })
+                );
+                setSavedWeak(true);
+              }}
+              disabled={savedWeak}
+              className="mt-4 w-full rounded-2xl bg-white text-[var(--violet-ink)] font-semibold py-3.5 disabled:opacity-70 active:scale-[0.98] transition"
+            >
+              {savedWeak ? "✓ Saved to revision" : "🔖 Save weak answers to revision"}
+            </button>
+          </div>
+        );
+      })()}
+
       <div className="mt-5 w-full flex flex-col gap-3">
         <button
-          onClick={() => type && start(type)}
+          onClick={() =>
+            type &&
+            (type.cats.length === 0 ? startTopic(type.label) : start(type))
+          }
           className="w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 active:scale-[0.98] transition"
         >
           Retry this round
