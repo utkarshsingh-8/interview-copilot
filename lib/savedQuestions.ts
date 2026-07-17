@@ -50,6 +50,38 @@ async function syncToCloud(qs: Question[]) {
   }
 }
 
+async function reconcileCloud(): Promise<Question[] | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  try {
+    const { data: u } = await sb.auth.getUser();
+    const uid = u.user?.id;
+    if (!uid) return null;
+    const { data } = await sb
+      .from("saved_questions")
+      .select("*")
+      .eq("user_id", uid);
+    if (data && data.length) {
+      const qs: Question[] = data.map((row) => ({
+        id: String(row.id),
+        category: row.category,
+        difficulty: row.difficulty,
+        question: row.question,
+        answer: row.answer,
+        tags: row.tags ?? [],
+      }));
+      localStorage.setItem(KEY, JSON.stringify(qs));
+      return qs;
+    }
+    // seed cloud from local
+    const local = readSaved();
+    if (local.length) await syncToCloud(local);
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function useSavedQuestions() {
   const [saved, setSaved] = useState<Question[]>([]);
   const [ready, setReady] = useState(false);
@@ -57,9 +89,18 @@ export function useSavedQuestions() {
   useEffect(() => {
     setSaved(readSaved());
     setReady(true);
+    const pull = () =>
+      reconcileCloud().then((qs) => {
+        if (qs) setSaved(qs);
+      });
+    pull();
     const onChange = () => setSaved(readSaved());
     window.addEventListener("copilot:savedq", onChange);
-    return () => window.removeEventListener("copilot:savedq", onChange);
+    window.addEventListener("copilot:auth", pull);
+    return () => {
+      window.removeEventListener("copilot:savedq", onChange);
+      window.removeEventListener("copilot:auth", pull);
+    };
   }, []);
 
   const replaceAll = useCallback((qs: Question[]) => {

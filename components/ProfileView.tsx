@@ -6,7 +6,7 @@ import ResumeEditor from "@/components/ResumeEditor";
 import { useResume } from "@/lib/resumeStore";
 import { useSavedQuestions } from "@/lib/savedQuestions";
 import { categoryMeta, type Category, type Question } from "@/lib/questions";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import AuthPanel from "@/components/AuthPanel";
 import type { Resume } from "@/lib/resume";
 
 const categories = Object.keys(categoryMeta) as Category[];
@@ -267,20 +267,7 @@ export default function ProfileView() {
         Settings
       </h2>
       <div className="flex flex-col gap-2">
-        <div className="card-flat px-4 py-3 flex items-center justify-between">
-          <span className="text-sm font-semibold text-[var(--ink)]">
-            ☁️ Cloud sync (Supabase)
-          </span>
-          <span
-            className={`text-xs font-bold ${
-              isSupabaseConfigured()
-                ? "text-[#2f8a5b]"
-                : "text-[var(--ink-faint)]"
-            }`}
-          >
-            {isSupabaseConfigured() ? "Connected" : "Not set up"}
-          </span>
-        </div>
+        <AuthPanel />
         <button
           onClick={resetLock}
           className="card-flat px-4 py-3.5 text-left text-sm font-semibold text-[var(--ink)] active:scale-[0.99] transition"

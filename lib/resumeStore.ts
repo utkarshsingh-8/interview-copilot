@@ -43,7 +43,9 @@ async function syncToCloud(r: Resume) {
   }
 }
 
-async function loadFromCloud(): Promise<Resume | null> {
+// Reconcile: if the cloud has a resume, adopt it locally; if not but we have a
+// local one, push it up. Returns the resume to show (or null if unchanged).
+async function reconcileCloud(): Promise<Resume | null> {
   const sb = getSupabase();
   if (!sb) return null;
   try {
@@ -55,7 +57,14 @@ async function loadFromCloud(): Promise<Resume | null> {
       .select("data")
       .eq("user_id", uid)
       .maybeSingle();
-    return (data?.data as Resume) ?? null;
+    if (data?.data) {
+      const cloud = data.data as Resume;
+      localStorage.setItem(KEY, JSON.stringify(cloud));
+      return { ...defaultResume, ...cloud };
+    }
+    // nothing in cloud yet — seed it from local
+    await syncToCloud(readResume());
+    return null;
   } catch {
     return null;
   }
@@ -68,16 +77,18 @@ export function useResume() {
   useEffect(() => {
     setResume(readResume());
     setReady(true);
-    // if signed in, prefer cloud copy
-    loadFromCloud().then((cloud) => {
-      if (cloud) {
-        localStorage.setItem(KEY, JSON.stringify(cloud));
-        setResume({ ...defaultResume, ...cloud });
-      }
-    });
+    const pull = () =>
+      reconcileCloud().then((cloud) => {
+        if (cloud) setResume(cloud);
+      });
+    pull();
     const onChange = () => setResume(readResume());
     window.addEventListener("copilot:resume", onChange);
-    return () => window.removeEventListener("copilot:resume", onChange);
+    window.addEventListener("copilot:auth", pull);
+    return () => {
+      window.removeEventListener("copilot:resume", onChange);
+      window.removeEventListener("copilot:auth", pull);
+    };
   }, []);
 
   const save = useCallback((r: Resume) => {
