@@ -3,7 +3,7 @@ import { groqChat, hasGroqKey, resumeContext } from "@/lib/ai";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(req: Request) {
   if (!hasGroqKey()) {
     return NextResponse.json(
       {
@@ -12,6 +12,13 @@ export async function POST() {
       },
       { status: 400 }
     );
+  }
+
+  let body: { resume?: unknown } = {};
+  try {
+    body = await req.json();
+  } catch {
+    // no body is fine — falls back to default resume
   }
 
   const system = `You are a senior technical recruiter and hiring manager at a top product company reviewing an AI Engineer's resume. Be direct and specific. Point out weak bullet points, missing impact/metrics, weak wording, missing keywords, and ATS issues. For each weakness, give a concrete improved version.
@@ -24,7 +31,7 @@ MISSING: 2-3 things that would strengthen the resume.
 
 Keep it tight and actionable. No preamble.`;
 
-  const user = `Review this resume:\n\n${resumeContext()}`;
+  const user = `Review this resume:\n\n${resumeContext(body.resume as never)}`;
 
   try {
     const review = await groqChat(

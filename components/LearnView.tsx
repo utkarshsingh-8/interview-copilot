@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { readResume } from "@/lib/resumeStore";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -31,7 +32,7 @@ export default function LearnView() {
       const res = await fetch("/api/learn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question, resume: readResume() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");

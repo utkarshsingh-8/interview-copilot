@@ -10,6 +10,8 @@ import {
   type Question,
 } from "@/lib/questions";
 import { useProgress, type Confidence } from "@/lib/progress";
+import { useSavedQuestions } from "@/lib/savedQuestions";
+import { readResume } from "@/lib/resumeStore";
 
 const categories = Object.keys(categoryMeta) as Category[];
 const difficulties = Object.keys(difficultyMeta) as Difficulty[];
@@ -22,7 +24,12 @@ const diffColor: Record<Difficulty, string> = {
 };
 
 export default function QuestionsView() {
-  const [list, setList] = useState<Question[]>(seedQuestions);
+  const [sessionGen, setSessionGen] = useState<Question[]>([]);
+  const { saved } = useSavedQuestions();
+  const list = useMemo(
+    () => [...sessionGen, ...saved, ...seedQuestions],
+    [sessionGen, saved]
+  );
   const [query, setQuery] = useState("");
   const [cat, setCat] = useState<Category | "all">("all");
   const [diff, setDiff] = useState<Difficulty | "all">("all");
@@ -53,12 +60,12 @@ export default function QuestionsView() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category: genCat, count: 4 }),
+        body: JSON.stringify({ category: genCat, count: 4, resume: readResume() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Generation failed");
       if (Array.isArray(data.questions) && data.questions.length) {
-        setList((prev) => [...data.questions, ...prev]);
+        setSessionGen((prev) => [...data.questions, ...prev]);
         setCat(genCat);
       } else {
         setGenError("No questions returned.");

@@ -1,19 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { resume } from "@/lib/resume";
 import Avatar3D from "@/components/Avatar3D";
+import ResumeEditor from "@/components/ResumeEditor";
+import { useResume } from "@/lib/resumeStore";
+import { useSavedQuestions } from "@/lib/savedQuestions";
+import { categoryMeta, type Category, type Question } from "@/lib/questions";
+import { isSupabaseConfigured } from "@/lib/supabase";
+import type { Resume } from "@/lib/resume";
+
+const categories = Object.keys(categoryMeta) as Category[];
 
 export default function ProfileView() {
+  const { resume, save } = useResume();
+  const { saved, replaceAll, clear } = useSavedQuestions();
+  const [editing, setEditing] = useState(false);
   const [review, setReview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [regen, setRegen] = useState<{ active: boolean; done: number; msg: string }>(
+    { active: false, done: 0, msg: "" }
+  );
 
   async function runReview() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/review", { method: "POST" });
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resume }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
       setReview(data.review);
@@ -22,6 +39,47 @@ export default function ProfileView() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function regenerateBank() {
+    setRegen({ active: true, done: 0, msg: "Starting…" });
+    const collected: Question[] = [];
+    try {
+      for (let i = 0; i < categories.length; i++) {
+        const c = categories[i];
+        setRegen({
+          active: true,
+          done: i,
+          msg: `Generating ${categoryMeta[c].label}…`,
+        });
+        const res = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ category: c, count: 4, resume }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Generation failed");
+        if (Array.isArray(data.questions)) collected.push(...data.questions);
+      }
+      replaceAll(collected);
+      setRegen({
+        active: false,
+        done: categories.length,
+        msg: `✓ ${collected.length} fresh questions saved`,
+      });
+    } catch (e) {
+      setRegen({
+        active: false,
+        done: 0,
+        msg: e instanceof Error ? e.message : "Failed",
+      });
+    }
+  }
+
+  function onSaveResume(r: Resume) {
+    save(r);
+    setEditing(false);
+    setReview(null); // stale review for old resume
   }
 
   function resetLock() {
@@ -38,6 +96,16 @@ export default function ProfileView() {
     }
   }
 
+  if (editing) {
+    return (
+      <ResumeEditor
+        initial={resume}
+        onSave={onSaveResume}
+        onCancel={() => setEditing(false)}
+      />
+    );
+  }
+
   return (
     <div className="fade-up">
       {/* header */}
@@ -45,8 +113,8 @@ export default function ProfileView() {
         <div className="rounded-full shadow-[var(--shadow)] shrink-0">
           <Avatar3D size={84} />
         </div>
-        <div>
-          <h1 className="text-2xl font-extrabold text-[var(--ink)]">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-extrabold text-[var(--ink)] truncate">
             {resume.name}
           </h1>
           <p className="text-sm text-[var(--ink-soft)]">{resume.title}</p>
@@ -55,7 +123,7 @@ export default function ProfileView() {
       </div>
 
       {/* links */}
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 flex gap-2 flex-wrap items-center">
         {resume.links.map((l) => (
           <a
             key={l.url}
@@ -67,10 +135,48 @@ export default function ProfileView() {
             {l.label}
           </a>
         ))}
+        <button
+          onClick={() => setEditing(true)}
+          className="pill bg-[var(--ink)] text-white !text-xs ml-auto"
+        >
+          ✏️ Edit resume
+        </button>
+      </div>
+
+      {/* Regenerate question bank */}
+      <div className="mt-6 card p-5 text-white bg-[var(--violet)]">
+        <p className="font-bold text-lg">Regenerate question bank</p>
+        <p className="text-white/80 text-sm mt-1">
+          Build a fresh set of interview questions grounded in your{" "}
+          <span className="font-semibold">current</span> resume. Do this after
+          editing.
+        </p>
+        <button
+          onClick={regenerateBank}
+          disabled={regen.active}
+          className="mt-4 w-full rounded-2xl bg-white text-[var(--violet-ink)] font-semibold py-3.5 disabled:opacity-70 active:scale-[0.98] transition"
+        >
+          {regen.active
+            ? `${regen.msg} (${regen.done}/${categories.length})`
+            : saved.length
+              ? "Regenerate again"
+              : "Generate my question bank"}
+        </button>
+        {!regen.active && regen.msg && (
+          <p className="mt-2 text-sm text-white/90">{regen.msg}</p>
+        )}
+        {saved.length > 0 && !regen.active && (
+          <button
+            onClick={clear}
+            className="mt-2 text-xs font-semibold text-white/70 underline"
+          >
+            Clear saved bank ({saved.length})
+          </button>
+        )}
       </div>
 
       {/* AI resume review */}
-      <div className="mt-6 card p-5 text-white bg-[var(--ink)]">
+      <div className="mt-4 card p-5 text-white bg-[var(--ink)]">
         <p className="font-bold text-lg">AI Resume Review</p>
         <p className="text-white/70 text-sm mt-1">
           Get a senior recruiter&apos;s honest take with concrete rewrites.
@@ -102,8 +208,8 @@ export default function ProfileView() {
 
       <Section title="Experience">
         <div className="flex flex-col gap-4">
-          {resume.experience.map((e) => (
-            <div key={e.company}>
+          {resume.experience.map((e, i) => (
+            <div key={i}>
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <p className="font-bold text-[15px] text-[var(--ink)]">
@@ -121,8 +227,8 @@ export default function ProfileView() {
       </Section>
 
       <Section title="Projects">
-        {resume.projects.map((p) => (
-          <div key={p.name} className="mb-3 last:mb-0">
+        {resume.projects.map((p, i) => (
+          <div key={i} className="mb-3 last:mb-0">
             <p className="font-bold text-[15px] text-[var(--ink)]">{p.name}</p>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {p.stack.map((s) => (
@@ -156,25 +262,25 @@ export default function ProfileView() {
         </div>
       </Section>
 
-      <Section title="Education">
-        {resume.education.map((ed) => (
-          <div key={ed.school}>
-            <p className="font-bold text-[15px] text-[var(--ink)]">
-              {ed.degree}
-            </p>
-            <p className="text-sm text-[var(--ink-soft)]">{ed.school}</p>
-            <p className="text-xs text-[var(--ink-faint)]">
-              {ed.start}–{ed.end}
-            </p>
-          </div>
-        ))}
-      </Section>
-
       {/* settings */}
       <h2 className="text-lg font-extrabold text-[var(--ink)] mt-7 mb-3">
         Settings
       </h2>
       <div className="flex flex-col gap-2">
+        <div className="card-flat px-4 py-3 flex items-center justify-between">
+          <span className="text-sm font-semibold text-[var(--ink)]">
+            ☁️ Cloud sync (Supabase)
+          </span>
+          <span
+            className={`text-xs font-bold ${
+              isSupabaseConfigured()
+                ? "text-[#2f8a5b]"
+                : "text-[var(--ink-faint)]"
+            }`}
+          >
+            {isSupabaseConfigured() ? "Connected" : "Not set up"}
+          </span>
+        </div>
         <button
           onClick={resetLock}
           className="card-flat px-4 py-3.5 text-left text-sm font-semibold text-[var(--ink)] active:scale-[0.99] transition"

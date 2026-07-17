@@ -1,7 +1,7 @@
 // Server-side Groq client (OpenAI-compatible API). No SDK needed — plain fetch.
 // Set GROQ_API_KEY in .env.local. Model is overridable via GROQ_MODEL.
 
-import { resume } from "./resume";
+import { resume as defaultResume, type Resume } from "./resume";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
@@ -42,28 +42,35 @@ export async function groqChat(
 }
 
 // Compact resume context injected into every AI call so answers stay grounded.
-export function resumeContext(): string {
-  const exp = resume.experience
+// Accepts a resume object (the user's edited one from the client); falls back
+// to the built-in default. Defensive so a partial/edited object never crashes.
+export function resumeContext(input?: Partial<Resume> | null): string {
+  const r = { ...defaultResume, ...(input || {}) } as Resume;
+  const skills = { ...defaultResume.skills, ...(input?.skills || {}) };
+  const exp = (r.experience || [])
     .map(
       (e) =>
-        `- ${e.role} @ ${e.company} (${e.start}–${e.end}): ${e.bullets.join(" ")}`
+        `- ${e.role} @ ${e.company} (${e.start}–${e.end}): ${(e.bullets || []).join(" ")}`
     )
     .join("\n");
-  const proj = resume.projects
-    .map((p) => `- ${p.name} [${p.stack.join(", ")}]: ${p.bullets.join(" ")}`)
+  const proj = (r.projects || [])
+    .map(
+      (p) =>
+        `- ${p.name} [${(p.stack || []).join(", ")}]: ${(p.bullets || []).join(" ")}`
+    )
     .join("\n");
   return [
-    `Candidate: ${resume.name}, ${resume.title}.`,
-    `Summary: ${resume.summary}`,
+    `Candidate: ${r.name}, ${r.title}.`,
+    `Summary: ${r.summary}`,
     `Experience:\n${exp}`,
     `Projects:\n${proj}`,
     `Skills: ${[
-      ...resume.skills.genai,
-      ...resume.skills.mldl,
-      ...resume.skills.llms,
-      ...resume.skills.vectorSearch,
-      ...resume.skills.backend,
-      ...resume.skills.mlops,
+      ...(skills.genai || []),
+      ...(skills.mldl || []),
+      ...(skills.llms || []),
+      ...(skills.vectorSearch || []),
+      ...(skills.backend || []),
+      ...(skills.mlops || []),
     ].join(", ")}`,
   ].join("\n\n");
 }

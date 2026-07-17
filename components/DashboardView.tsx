@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { resume } from "@/lib/resume";
 import Avatar3D from "@/components/Avatar3D";
+import { useResume } from "@/lib/resumeStore";
 import {
   categoryMeta,
   questions,
@@ -16,6 +16,7 @@ const categories = Object.keys(categoryMeta) as Category[];
 
 export default function DashboardView() {
   const { progress, ready } = useProgress();
+  const { resume } = useResume();
 
   const stats = useMemo(() => {
     const total = questions.length;

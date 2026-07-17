@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { question?: string };
+  let body: { question?: string; resume?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -37,7 +37,7 @@ Structure your answer as:
 Be concise and concrete. When relevant, connect it to the candidate's actual experience below.
 
 CANDIDATE CONTEXT:
-${resumeContext()}`;
+${resumeContext(body.resume as never)}`;
 
   try {
     const answer = await groqChat(

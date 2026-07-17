@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     );
   }
 
-  let body: { category?: string; count?: number };
+  let body: { category?: string; count?: number; resume?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
   const system = `You are a senior AI-engineering interviewer preparing a specific candidate for interviews at top product companies. Ask sharp, resume-specific questions and write strong model answers in the candidate's first-person voice, grounded ONLY in the candidate's real experience below. Be concrete and technical. Never invent facts not implied by the resume.
 
 CANDIDATE CONTEXT:
-${resumeContext()}`;
+${resumeContext(body.resume as never)}`;
 
   const user = `Generate ${count} interview questions in the "${meta.label}" area (${meta.blurb}). Vary difficulty across beginner, intermediate, advanced, and staff. Return STRICT JSON of the form:
 {"questions":[{"question":"...","answer":"...","difficulty":"beginner|intermediate|advanced|staff","tags":["...","..."]}]}
