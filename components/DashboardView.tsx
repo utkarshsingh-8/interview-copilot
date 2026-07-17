@@ -92,9 +92,13 @@ export default function DashboardView() {
             interview ready
           </h1>
         </div>
-        <div className="rounded-full shadow-[var(--shadow-sm)] shrink-0">
+        <Link
+          href="/profile"
+          className="rounded-full shadow-[var(--shadow-sm)] shrink-0 active:scale-95 transition"
+          aria-label="Profile"
+        >
           <Avatar3D size={52} />
-        </div>
+        </Link>
       </div>
 
       {/* readiness card */}

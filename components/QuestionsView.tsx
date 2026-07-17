@@ -12,6 +12,7 @@ import {
 import { useProgress, type Confidence } from "@/lib/progress";
 import { useSavedQuestions } from "@/lib/savedQuestions";
 import { readResume } from "@/lib/resumeStore";
+import { addSaved } from "@/lib/notes";
 
 const categories = Object.keys(categoryMeta) as Category[];
 const difficulties = Object.keys(difficultyMeta) as Difficulty[];
@@ -37,6 +38,7 @@ export default function QuestionsView() {
   const [genCat, setGenCat] = useState<Category>("genai");
   const [genBusy, setGenBusy] = useState(false);
   const [genError, setGenError] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
   const { progress, markPracticed, unmarkPracticed } = useProgress();
 
   const filtered = useMemo(() => {
@@ -246,6 +248,26 @@ export default function QuestionsView() {
                         </div>
                       )}
                     </div>
+
+                    {/* save */}
+                    <button
+                      onClick={() => {
+                        addSaved({
+                          type: "qa",
+                          title: item.question,
+                          content: item.answer,
+                          tags: item.tags,
+                        });
+                        setSavedId(item.id);
+                        setTimeout(
+                          () => setSavedId((s) => (s === item.id ? null : s)),
+                          1500
+                        );
+                      }}
+                      className="mt-3 text-xs font-semibold text-[var(--violet-ink)] active:scale-95 transition"
+                    >
+                      {savedId === item.id ? "✓ Saved to notes" : "🔖 Save answer"}
+                    </button>
 
                     {/* practiced controls */}
                     <div className="mt-3">

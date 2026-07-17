@@ -40,11 +40,23 @@ create table if not exists public.saved_questions (
   created_at timestamptz not null default now()
 );
 
+-- 5. Saved answers & notes (revision material)
+create table if not exists public.notes (
+  id uuid primary key default gen_random_uuid (),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  type text not null check (type in ('learn', 'qa', 'note')),
+  title text not null,
+  content text not null default '',
+  tags text[] default '{}',
+  created_at timestamptz not null default now()
+);
+
 -- Row Level Security: users only see their own rows
 alter table public.resumes enable row level security;
 alter table public.progress enable row level security;
 alter table public.mock_sessions enable row level security;
 alter table public.saved_questions enable row level security;
+alter table public.notes enable row level security;
 
 do $$
 begin
@@ -67,6 +79,11 @@ begin
   -- saved_questions
   if not exists (select 1 from pg_policies where tablename = 'saved_questions' and policyname = 'own_saved') then
     create policy own_saved on public.saved_questions
+      for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
+  end if;
+  -- notes
+  if not exists (select 1 from pg_policies where tablename = 'notes' and policyname = 'own_notes') then
+    create policy own_notes on public.notes
       for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
   end if;
 end $$;

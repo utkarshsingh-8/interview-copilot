@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { readResume } from "@/lib/resumeStore";
+import { addSaved } from "@/lib/notes";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -19,7 +20,16 @@ export default function LearnView() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedIdx, setSavedIdx] = useState<number | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+
+  function saveAnswer(i: number) {
+    const answer = messages[i]?.content ?? "";
+    const question = messages[i - 1]?.content ?? "Learned concept";
+    addSaved({ type: "learn", title: question, content: answer });
+    setSavedIdx(i);
+    setTimeout(() => setSavedIdx((s) => (s === i ? null : s)), 1500);
+  }
 
   async function ask(q: string) {
     const question = q.trim();
@@ -96,11 +106,16 @@ export default function LearnView() {
                 {m.content}
               </div>
             ) : (
-              <div
-                key={i}
-                className="self-start max-w-[92%] card-flat px-4 py-3 text-[14px] leading-relaxed text-[var(--ink)] whitespace-pre-line"
-              >
-                {m.content}
+              <div key={i} className="self-start max-w-[92%]">
+                <div className="card-flat px-4 py-3 text-[14px] leading-relaxed text-[var(--ink)] whitespace-pre-line">
+                  {m.content}
+                </div>
+                <button
+                  onClick={() => saveAnswer(i)}
+                  className="mt-1.5 ml-1 text-xs font-semibold text-[var(--violet-ink)] active:scale-95 transition"
+                >
+                  {savedIdx === i ? "✓ Saved to notes" : "🔖 Save"}
+                </button>
               </div>
             )
           )}
