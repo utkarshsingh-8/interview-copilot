@@ -5,6 +5,7 @@
 // readiness score without a backend. Later this can sync to Supabase.
 
 import { useCallback, useEffect, useState } from "react";
+import { logActivity } from "./activity";
 
 const KEY = "copilot.progress.v1";
 
@@ -61,12 +62,17 @@ export function useProgress() {
     };
   }, []);
 
-  const markPracticed = useCallback((id: string, confidence: Confidence) => {
-    const p = read();
-    p.practiced[id] = confidence;
-    p.lastActive = new Date().toISOString();
-    write(p);
-  }, []);
+  const markPracticed = useCallback(
+    (id: string, confidence: Confidence, label?: string) => {
+      const p = read();
+      const isNew = !p.practiced[id];
+      p.practiced[id] = confidence;
+      p.lastActive = new Date().toISOString();
+      write(p);
+      if (isNew) logActivity("practice", label || id);
+    },
+    []
+  );
 
   const unmarkPracticed = useCallback((id: string) => {
     const p = read();
@@ -85,6 +91,7 @@ export function useProgress() {
       });
       p.lastActive = new Date().toISOString();
       write(p);
+      logActivity("mock", s.type, s.score);
     },
     []
   );

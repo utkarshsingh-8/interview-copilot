@@ -133,6 +133,31 @@ export default function DashboardView() {
         />
       </div>
 
+      {/* activity CTA */}
+      <Link
+        href="/activity"
+        className="mt-4 card-flat p-4 flex items-center gap-3 active:scale-[0.99] transition"
+      >
+        <span className="text-2xl">📅</span>
+        <div className="flex-1">
+          <p className="font-bold text-sm text-[var(--ink)]">
+            Activity &amp; reports
+          </p>
+          <p className="text-xs text-[var(--ink-faint)]">
+            Calendar, streak, daily &amp; weekly analytics
+          </p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path
+            d="m9 6 6 6-6 6"
+            stroke="#9a95ac"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </Link>
+
       {/* target a job CTA */}
       <Link
         href="/jd"

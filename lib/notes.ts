@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { getSupabase } from "./supabase";
+import { logActivity } from "./activity";
 
 export type SavedType = "learn" | "qa" | "note";
 
@@ -94,6 +95,7 @@ export function addSaved(input: {
   const items = readNotes();
   writeLocal([item, ...items]);
   void cloudInsert(item);
+  logActivity("save", item.title);
   return item;
 }
 

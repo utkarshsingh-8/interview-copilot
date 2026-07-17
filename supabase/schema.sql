@@ -64,6 +64,18 @@ create table if not exists public.applications (
   updated_at timestamptz not null default now()
 );
 
+-- 7. Activity log (daily/weekly reports + calendar)
+create table if not exists public.activity (
+  id uuid primary key default gen_random_uuid (),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  type text not null check (type in ('mock', 'practice', 'learn', 'save', 'jd')),
+  label text not null default '',
+  score int,
+  created_at timestamptz not null default now()
+);
+create index if not exists activity_user_created_idx
+  on public.activity (user_id, created_at desc);
+
 -- Row Level Security: users only see their own rows
 alter table public.resumes enable row level security;
 alter table public.progress enable row level security;
@@ -71,6 +83,7 @@ alter table public.mock_sessions enable row level security;
 alter table public.saved_questions enable row level security;
 alter table public.notes enable row level security;
 alter table public.applications enable row level security;
+alter table public.activity enable row level security;
 
 do $$
 begin
@@ -103,6 +116,11 @@ begin
   -- applications
   if not exists (select 1 from pg_policies where tablename = 'applications' and policyname = 'own_apps') then
     create policy own_apps on public.applications
+      for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
+  end if;
+  -- activity
+  if not exists (select 1 from pg_policies where tablename = 'activity' and policyname = 'own_activity') then
+    create policy own_activity on public.activity
       for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
   end if;
 end $$;

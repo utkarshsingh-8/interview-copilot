@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { readResume } from "@/lib/resumeStore";
 import { addSaved } from "@/lib/notes";
+import { logActivity } from "@/lib/activity";
 import type { Question } from "@/lib/questions";
 
 type Analysis = {
@@ -40,6 +41,7 @@ export default function JDView() {
       if (!res.ok) throw new Error(data.error || "Analysis failed");
       setResult(data as Analysis);
       setOpenQ(null);
+      logActivity("jd", company.trim() || "Job description", data.matchScore);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     } finally {

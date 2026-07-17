@@ -304,6 +304,79 @@ export const questions: Question[] = [
     tags: ["system-design", "evaluation", "mlops", "staff"],
   },
 
+  {
+    id: "sd-3",
+    category: "systemdesign",
+    difficulty: "advanced",
+    question: "Design a multi-tenant LLM API platform with cost control and rate limiting.",
+    answer:
+      "Clients hit an API gateway that authenticates (API key → tenant), then a limiter enforces per-tenant quotas in Redis — I'd limit tokens, not just requests, since cost scales with tokens. Requests enter a queue in front of a GPU pool served by vLLM with continuous batching; concurrency is bounded to the GPU, not the request count, because the GPU is the real bottleneck. Routing sends cheap/simple queries to a small model and hard ones to a large one, which is the biggest cost lever. A semantic cache returns near-duplicate answers instantly. I meter tokens per tenant into a usage store for billing and alerts, and enforce hard caps to prevent runaway spend. Cross-cutting: tracing per request, cost dashboards, and graceful 429s with Retry-After.",
+    tags: ["system-design", "multi-tenant", "cost", "rate-limiting"],
+  },
+  {
+    id: "sd-4",
+    category: "systemdesign",
+    difficulty: "advanced",
+    question: "Design a document-processing pipeline that extracts structured data from PDFs using LLMs.",
+    answer:
+      "Ingest to object storage (S3) and emit an event per document. A parsing stage (Unstructured/LlamaParse) converts PDF to text plus layout — this stage dominates quality, so I'd handle scanned docs via OCR and keep tables intact. Then chunk with structure awareness and run extraction: an LLM with a strict JSON schema (function calling / structured output) per field, with confidence. Validate against the schema; anything failing validation or below a confidence threshold routes to a human-review queue rather than silently writing bad data. Persist to Postgres, keep the raw text for re-processing, and make the whole thing idempotent and resumable per document since batches are large. I'd measure field-level accuracy on a labeled set, not just 'it ran'.",
+    tags: ["system-design", "pipeline", "extraction", "structured-output"],
+  },
+  {
+    id: "sd-5",
+    category: "systemdesign",
+    difficulty: "staff",
+    question: "Design an AI agent platform that safely executes tools on behalf of users.",
+    answer:
+      "Core loop: LLM plans → selects a tool → executes → observes → repeats, orchestrated by something durable like LangGraph so state survives crashes and steps are resumable. Tools are declared with typed schemas (MCP-style) and every call goes through a permission layer keyed to the user — read tools auto-approve, mutating/irreversible ones require confirmation. Untrusted code runs in an isolated sandbox (E2B/containers) with no network or credentials by default. I'd bound the loop: max steps, timeouts, and a cost ceiling, since runaway agents are the classic failure. Treat prompt injection as the top threat — tool outputs are untrusted input, so never let retrieved content escalate permissions. Full tracing of every step for debugging and audit.",
+    tags: ["system-design", "agents", "safety", "staff"],
+  },
+  {
+    id: "sd-6",
+    category: "systemdesign",
+    difficulty: "advanced",
+    question: "Design a semantic search system over 100M documents. What breaks first?",
+    answer:
+      "At 100M vectors, an exact flat index is impossible — you need ANN (HNSW or IVF-PQ) and sharding. I'd shard by tenant or topic, replicate for read throughput, and use product quantization to keep memory sane, accepting a small recall hit. Embedding 100M docs is a big batch job — run it distributed (Ray/Spark), version the embedding model, and plan for re-embedding since a model change means a full re-index. Serve hybrid: BM25 + vector, fused and reranked on the top ~100 only, because the reranker is the expensive part. What breaks first is usually memory and index build time, then recall degradation from aggressive quantization. I'd track recall@k against a labeled set so 'faster' never silently means 'worse'.",
+    tags: ["system-design", "vector-search", "scale", "ann"],
+  },
+  {
+    id: "sd-7",
+    category: "systemdesign",
+    difficulty: "staff",
+    question: "Design an end-to-end fine-tuning pipeline: data → train → eval → deploy.",
+    answer:
+      "Data: collect and curate examples with provenance, dedupe, filter for quality, and version the dataset (DVC or a table) — dataset version is as important as model version. Train: LoRA/PEFT jobs on a GPU pool, config-driven (Axolotl-style), with every run logged to MLflow/W&B including hyperparameters and dataset hash for reproducibility. Eval: automatic gates on a held-out golden set — domain accuracy plus regression checks on general ability so you catch catastrophic forgetting; the run fails if it doesn't beat the incumbent. Deploy: register the adapter, roll out behind a flag to a canary slice, monitor online quality and latency, auto-rollback on regression. Adapters are small so I can hot-swap and keep the base model shared across tasks.",
+    tags: ["system-design", "fine-tuning", "mlops", "staff"],
+  },
+  {
+    id: "sd-8",
+    category: "systemdesign",
+    difficulty: "advanced",
+    question: "How would you design caching for an LLM application? What are the layers?",
+    answer:
+      "Three layers. Exact cache: hash the normalized prompt + model + params → response in Redis. Cheap, safe, big win on repeated queries. Semantic cache: embed the query and return a cached answer if similarity exceeds a threshold — much higher hit rate, but risky, so I keep the threshold conservative and never semantically cache anything personalized or time-sensitive. Provider-side prompt caching: reuse a long static system prompt/context across calls to cut cost and TTFT. Also cache embeddings, since re-embedding identical text is pure waste. Cross-cutting: TTLs bounded by how fast the underlying knowledge changes, invalidate on re-index, and track hit rate plus a sample of cached answers for quality — a stale wrong answer served instantly is worse than a slow right one.",
+    tags: ["system-design", "caching", "cost", "latency"],
+  },
+  {
+    id: "sd-9",
+    category: "systemdesign",
+    difficulty: "advanced",
+    question: "Design a real-time recommendation system using embeddings.",
+    answer:
+      "Two stages: candidate generation then ranking. Candidates come from ANN search over item embeddings using the user's embedding (from recent interactions), pulling ~500 from 10M — this must be fast, so it's a vector index, not a model. Ranking then scores those with a heavier model using richer features (context, freshness, business rules). Embeddings are computed offline in batch and refreshed on a schedule; the user vector updates in near-real-time from a stream (Kafka) so recent behavior matters. A feature store keeps training and serving features consistent — training/serving skew is the classic bug here. Serve behind a cache with a p99 budget, and measure online CTR via A/B, since offline metrics routinely disagree with production.",
+    tags: ["system-design", "recsys", "embeddings", "real-time"],
+  },
+  {
+    id: "sd-10",
+    category: "systemdesign",
+    difficulty: "staff",
+    question: "How do you design guardrails for a production LLM in a regulated domain?",
+    answer:
+      "Defense in depth at three points. Input: PII detection/redaction (Presidio), prompt-injection screening, and scope checks that reject out-of-domain questions instead of guessing. Generation: constrain with retrieval so answers are grounded, use structured output where possible, and keep a strict system prompt — but never rely on the prompt alone as a control. Output: a safety classifier (Llama Guard-style), a groundedness check that every claim is supported by retrieved context, and a refusal path — in a medical setting 'I don't have evidence for this' must be an acceptable, well-designed answer. Around all of it: full audit logging, human review for high-risk categories, and versioned evals so a prompt change can't silently weaken safety. The principle is that guardrails are a system, not a prompt.",
+    tags: ["system-design", "guardrails", "safety", "compliance", "staff"],
+  },
+
   // ---------- BEHAVIORAL ----------
   {
     id: "beh-1",

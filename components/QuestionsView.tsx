@@ -281,7 +281,7 @@ export default function QuestionsView() {
                             onClick={() =>
                               conf === c
                                 ? unmarkPracticed(item.id)
-                                : markPracticed(item.id, c)
+                                : markPracticed(item.id, c, item.question)
                             }
                             className={`flex-1 rounded-xl py-2.5 text-xs font-semibold transition active:scale-95 ${
                               conf === c
