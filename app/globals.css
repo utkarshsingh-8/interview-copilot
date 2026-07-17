@@ -1,26 +1,122 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ */
+/*  Design tokens — soft lavender, iOS-style minimalist                */
+/* ------------------------------------------------------------------ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #e9e5f4;
+  --bg-2: #efecf8;
+  --surface: #ffffff;
+  --surface-muted: #f6f4fb;
+  --ink: #1c1830;
+  --ink-soft: #6b6580;
+  --ink-faint: #9a95ac;
+  --violet: #6d5dd3;
+  --violet-soft: #efeaff;
+  --violet-ink: #4a3fb0;
+  --rose: #f4d9e0;
+  --rose-ink: #b1607a;
+  --mint: #d8efe4;
+  --line: #ece9f5;
+  --shadow: 0 10px 30px -12px rgba(60, 45, 120, 0.28);
+  --shadow-sm: 0 4px 14px -8px rgba(60, 45, 120, 0.25);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-violet: var(--violet);
+  --font-sans: var(--font-sans, ui-sans-serif, system-ui, -apple-system, sans-serif);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans, ui-sans-serif, system-ui, -apple-system,
+      "Segoe UI", sans-serif);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+}
+
+/* Respect iPhone safe areas (notch / home indicator) */
+.safe-top {
+  padding-top: max(env(safe-area-inset-top), 0px);
+}
+.safe-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom), 0px);
+}
+
+/* Hide scrollbars for the horizontal pill rows */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Reusable primitives                                                */
+/* ------------------------------------------------------------------ */
+.card {
+  background: var(--surface);
+  border-radius: 1.75rem;
+  box-shadow: var(--shadow);
+}
+
+.card-flat {
+  background: var(--surface);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+/* smooth accordion */
+.accordion {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.28s ease;
+}
+.accordion.open {
+  grid-template-rows: 1fr;
+}
+.accordion > div {
+  overflow: hidden;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-up {
+  animation: fadeUp 0.35s ease both;
 }

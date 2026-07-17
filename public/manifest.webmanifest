@@ -1,0 +1,24 @@
+{
+  "name": "Interview Copilot",
+  "short_name": "Copilot",
+  "description": "Personal AI interview coach grounded in your resume.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e9e5f4",
+  "theme_color": "#e9e5f4",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
