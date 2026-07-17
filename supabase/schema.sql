@@ -51,12 +51,26 @@ create table if not exists public.notes (
   created_at timestamptz not null default now()
 );
 
+-- 6. Job application tracker
+create table if not exists public.applications (
+  id uuid primary key default gen_random_uuid (),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  company text not null default '',
+  role text not null default '',
+  stage text not null default 'wishlist',
+  url text default '',
+  next_action text default '',
+  notes text default '',
+  updated_at timestamptz not null default now()
+);
+
 -- Row Level Security: users only see their own rows
 alter table public.resumes enable row level security;
 alter table public.progress enable row level security;
 alter table public.mock_sessions enable row level security;
 alter table public.saved_questions enable row level security;
 alter table public.notes enable row level security;
+alter table public.applications enable row level security;
 
 do $$
 begin
@@ -84,6 +98,11 @@ begin
   -- notes
   if not exists (select 1 from pg_policies where tablename = 'notes' and policyname = 'own_notes') then
     create policy own_notes on public.notes
+      for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
+  end if;
+  -- applications
+  if not exists (select 1 from pg_policies where tablename = 'applications' and policyname = 'own_apps') then
+    create policy own_apps on public.applications
       for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
   end if;
 end $$;

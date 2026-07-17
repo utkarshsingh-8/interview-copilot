@@ -133,6 +133,29 @@ export default function DashboardView() {
         />
       </div>
 
+      {/* target a job CTA */}
+      <Link
+        href="/jd"
+        className="mt-4 card p-5 flex items-center gap-4 bg-[var(--violet)] text-white active:scale-[0.99] transition"
+      >
+        <span className="text-3xl">🎯</span>
+        <div className="flex-1">
+          <p className="font-bold text-[15px]">Prep for a specific job</p>
+          <p className="text-white/80 text-xs">
+            Paste a JD → match score, gaps &amp; likely questions
+          </p>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path
+            d="m9 6 6 6-6 6"
+            stroke="#fff"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </Link>
+
       {/* strengths */}
       <SectionHeader title="Strongest topics" />
       <div className="flex flex-wrap gap-2">

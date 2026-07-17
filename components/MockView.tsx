@@ -1,12 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   categoryMeta,
   questions as allQuestions,
   type Category,
   type Question,
 } from "@/lib/questions";
+
+type GradeResult = {
+  score: number;
+  verdict: string;
+  strengths: string[];
+  missing: string[];
+  better: string;
+};
 import { useProgress } from "@/lib/progress";
 import { readResume } from "@/lib/resumeStore";
 import { addSaved } from "@/lib/notes";
@@ -228,6 +236,90 @@ export default function MockView() {
   const [revealed, setRevealed] = useState(false);
   const [scores, setScores] = useState<number[]>([]);
   const [savedWeak, setSavedWeak] = useState(false);
+  // AI answer-grading + voice
+  const [userAnswer, setUserAnswer] = useState("");
+  const [listening, setListening] = useState(false);
+  const [grading, setGrading] = useState(false);
+  const [grade, setGrade] = useState<GradeResult | null>(null);
+  const [gradeErr, setGradeErr] = useState<string | null>(null);
+  const [voiceOK, setVoiceOK] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recRef = useRef<any>(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    setVoiceOK(!!(w.SpeechRecognition || w.webkitSpeechRecognition));
+  }, []);
+
+  function resetAnswerState() {
+    try {
+      recRef.current?.stop();
+    } catch {}
+    setUserAnswer("");
+    setGrade(null);
+    setGradeErr(null);
+    setListening(false);
+  }
+
+  function toggleVoice() {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const w = window as any;
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    if (!SR) return;
+    if (listening) {
+      recRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "en-US";
+    rec.continuous = true;
+    rec.interimResults = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    rec.onresult = (e: any) => {
+      let txt = "";
+      for (let i = e.resultIndex; i < e.results.length; i++)
+        txt += e.results[i][0].transcript;
+      if (txt.trim())
+        setUserAnswer((prev) => (prev ? prev + " " : "") + txt.trim());
+    };
+    rec.onend = () => setListening(false);
+    rec.onerror = () => setListening(false);
+    recRef.current = rec;
+    rec.start();
+    setListening(true);
+  }
+
+  async function submitForGrade(q: Question) {
+    if (!userAnswer.trim()) return;
+    try {
+      recRef.current?.stop();
+    } catch {}
+    setListening(false);
+    setGrading(true);
+    setGradeErr(null);
+    try {
+      const res = await fetch("/api/grade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: q.question,
+          modelAnswer: q.answer,
+          userAnswer,
+          resume: readResume(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Grading failed");
+      setGrade(data as GradeResult);
+      setRevealed(true);
+    } catch (e) {
+      setGradeErr(e instanceof Error ? e.message : "Grading failed");
+    } finally {
+      setGrading(false);
+    }
+  }
 
   const start = (t: InterviewType) => {
     const qs = pick(t.cats, 5);
@@ -237,6 +329,7 @@ export default function MockView() {
     setRevealed(false);
     setScores([]);
     setSavedWeak(false);
+    resetAnswerState();
     setPhase("run");
   };
 
@@ -259,6 +352,7 @@ export default function MockView() {
       setRevealed(false);
       setScores([]);
       setSavedWeak(false);
+      resetAnswerState();
       setPhase("run");
     } catch (e) {
       setGenError(e instanceof Error ? e.message : "Failed");
@@ -269,6 +363,7 @@ export default function MockView() {
   const rate = (score: number) => {
     const next = [...scores, score];
     setScores(next);
+    resetAnswerState();
     if (idx + 1 >= set.length) {
       const avg = Math.round(next.reduce((a, b) => a + b, 0) / next.length);
       addMockSession({ type: type!.label, score: avg });
@@ -472,20 +567,116 @@ export default function MockView() {
           </h2>
         </div>
 
-        {!revealed ? (
-          <div className="mt-8 card p-6 text-center">
-            <p className="text-sm text-[var(--ink-soft)]">
-              Answer out loud like a real interview. When you&apos;re done,
-              reveal the model answer and rate yourself honestly.
-            </p>
+        {grade ? (
+          /* ---- AI feedback ---- */
+          <div className="mt-6 fade-up">
+            <div className="card p-5 text-white bg-[var(--ink)] flex items-center gap-4">
+              <div
+                className={`h-16 w-16 shrink-0 rounded-full grid place-items-center text-2xl font-extrabold ${
+                  grade.score >= 75
+                    ? "bg-[#2f8a5b]"
+                    : grade.score >= 50
+                      ? "bg-[#c08a3a]"
+                      : "bg-[#b1607a]"
+                }`}
+              >
+                {grade.score}
+              </div>
+              <div>
+                <p className="text-white/60 text-xs font-semibold uppercase">
+                  AI verdict
+                </p>
+                <p className="font-bold leading-snug">{grade.verdict}</p>
+              </div>
+            </div>
+
+            {grade.strengths.length > 0 && (
+              <div className="mt-3 card-flat p-4">
+                <p className="text-xs font-bold text-[#2f8a5b] mb-2">
+                  ✓ What worked
+                </p>
+                <ul className="text-sm text-[var(--ink)] list-disc pl-4 space-y-1">
+                  {grade.strengths.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {grade.missing.length > 0 && (
+              <div className="mt-3 card-flat p-4">
+                <p className="text-xs font-bold text-[#c08a3a] mb-2">
+                  ⚠ What was missing
+                </p>
+                <ul className="text-sm text-[var(--ink)] list-disc pl-4 space-y-1">
+                  {grade.missing.map((s, i) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {grade.better && (
+              <div className="mt-3 card-flat p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--violet-ink)] mb-2">
+                  Stronger answer
+                </p>
+                <p className="text-[14px] leading-relaxed text-[var(--ink)] whitespace-pre-line">
+                  {grade.better}
+                </p>
+              </div>
+            )}
+            <button
+              onClick={() => rate(grade.score)}
+              className="mt-4 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 active:scale-[0.98] transition"
+            >
+              {idx + 1 >= set.length ? "Finish →" : "Next question →"}
+            </button>
+          </div>
+        ) : !revealed ? (
+          /* ---- answer input (type or speak) ---- */
+          <div className="mt-6 fade-up">
+            <div className="card p-4">
+              <textarea
+                value={userAnswer}
+                onChange={(e) => setUserAnswer(e.target.value)}
+                rows={5}
+                placeholder="Type your answer — or tap the mic and speak it like a real interview."
+                className="w-full bg-[var(--surface-muted)] rounded-2xl px-4 py-3 text-sm outline-none resize-none leading-relaxed placeholder:text-[var(--ink-faint)]"
+              />
+              {voiceOK && (
+                <button
+                  onClick={toggleVoice}
+                  className={`mt-3 w-full rounded-xl py-3 text-sm font-semibold flex items-center justify-center gap-2 transition active:scale-95 ${
+                    listening
+                      ? "bg-[#fbe6ec] text-[#b1607a]"
+                      : "bg-[var(--surface-muted)] text-[var(--ink)]"
+                  }`}
+                >
+                  <span className={listening ? "animate-pulse" : ""}>🎙️</span>
+                  {listening ? "Listening… tap to stop" : "Speak your answer"}
+                </button>
+              )}
+            </div>
+
+            {gradeErr && (
+              <p className="mt-3 text-sm text-[var(--rose-ink)]">{gradeErr}</p>
+            )}
+
+            <button
+              onClick={() => submitForGrade(q)}
+              disabled={!userAnswer.trim() || grading}
+              className="mt-4 w-full rounded-2xl bg-[var(--violet)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition"
+            >
+              {grading ? "Grading your answer…" : "Get AI feedback"}
+            </button>
             <button
               onClick={() => setRevealed(true)}
-              className="mt-5 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 active:scale-[0.98] transition"
+              className="mt-2 w-full rounded-2xl text-[var(--ink-soft)] font-semibold py-3 active:scale-[0.98] transition"
             >
-              Reveal model answer
+              Skip — show answer &amp; self-rate
             </button>
           </div>
         ) : (
+          /* ---- model answer + self-rate ---- */
           <div className="mt-6 fade-up">
             <div className="card p-5">
               <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--violet-ink)] mb-2">

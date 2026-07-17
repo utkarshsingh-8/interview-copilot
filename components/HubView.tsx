@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLinks } from "@/lib/links";
+import ApplicationsView from "@/components/ApplicationsView";
 import {
   defaultVars,
   fillTemplate,
@@ -12,6 +13,7 @@ import {
 
 export default function HubView() {
   const { links, update, add, remove, reset } = useLinks();
+  const [seg, setSeg] = useState<"presence" | "jobs">("presence");
   const [editLinks, setEditLinks] = useState(false);
   const [vars, setVars] = useState<Record<TemplateVar, string>>(defaultVars);
   const [openTpl, setOpenTpl] = useState<string | null>(null);
@@ -37,12 +39,33 @@ export default function HubView() {
             Your Hub
           </p>
           <h1 className="text-[2rem] leading-tight font-extrabold tracking-tight text-[var(--ink)]">
-            Links &amp; templates
+            {seg === "presence" ? "Links & templates" : "Job tracker"}
           </h1>
         </div>
       </div>
 
-      {/* LINKS */}
+      {/* segmented control */}
+      <div className="mt-5 flex gap-1 p-1 rounded-2xl bg-[var(--surface-muted)]">
+        {(["presence", "jobs"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSeg(s)}
+            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
+              seg === s
+                ? "bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-sm)]"
+                : "text-[var(--ink-soft)]"
+            }`}
+          >
+            {s === "presence" ? "Links & Templates" : "Applications"}
+          </button>
+        ))}
+      </div>
+
+      {seg === "jobs" ? (
+        <ApplicationsView />
+      ) : (
+        <>
+          {/* LINKS */}
       <div className="flex items-center justify-between mt-6 mb-3">
         <h2 className="text-lg font-extrabold text-[var(--ink)]">My presence</h2>
         <button
@@ -217,9 +240,11 @@ export default function HubView() {
                 </div>
               </div>
             </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+        </>
+      )}
     </div>
   );
 }
