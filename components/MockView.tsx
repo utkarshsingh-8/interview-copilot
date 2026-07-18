@@ -462,8 +462,8 @@ export default function MockView() {
           <div className="mt-4">
             <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-sm)] mb-3">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="11" cy="11" r="7" stroke="#9a95ac" strokeWidth="2" />
-                <path d="m20 20-3-3" stroke="#9a95ac" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="11" cy="11" r="7" stroke="var(--ink-faint)" strokeWidth="2" />
+                <path d="m20 20-3-3" stroke="var(--ink-faint)" strokeWidth="2" strokeLinecap="round" />
               </svg>
               <input
                 value={topicQuery}
@@ -571,7 +571,7 @@ export default function MockView() {
         {grade ? (
           /* ---- AI feedback ---- */
           <div className="mt-6 fade-up">
-            <div className="card p-5 text-white bg-[var(--ink)] flex items-center gap-4">
+            <div className="card p-5 text-white bg-[var(--accent)] flex items-center gap-4">
               <div
                 className={`h-16 w-16 shrink-0 rounded-full grid place-items-center text-2xl font-extrabold ${
                   grade.score >= 75
@@ -627,7 +627,7 @@ export default function MockView() {
             )}
             <button
               onClick={() => rate(grade.score)}
-              className="mt-4 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 active:scale-[0.98] transition"
+              className="mt-4 w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 active:scale-[0.98] transition"
             >
               {idx + 1 >= set.length ? "Finish →" : "Next question →"}
             </button>
@@ -710,7 +710,7 @@ export default function MockView() {
   // ---------- DONE ----------
   return (
     <div className="fade-up flex flex-col items-center text-center pt-8">
-      <div className="h-28 w-28 rounded-full bg-[var(--ink)] text-white grid place-items-center shadow-[var(--shadow)]">
+      <div className="h-28 w-28 rounded-full bg-[var(--accent)] text-white grid place-items-center shadow-[var(--shadow)]">
         <span className="text-4xl font-extrabold">{finalScore}</span>
       </div>
       <h1 className="mt-6 text-2xl font-extrabold text-[var(--ink)]">
@@ -797,7 +797,7 @@ export default function MockView() {
             type &&
             (type.cats.length === 0 ? startTopic(type.label) : start(type))
           }
-          className="w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 active:scale-[0.98] transition"
+          className="w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 active:scale-[0.98] transition"
         >
           Retry this round
         </button>

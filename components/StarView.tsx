@@ -47,7 +47,7 @@ export default function StarView() {
 
       <button
         onClick={() => setEditing(create())}
-        className="mt-4 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-3.5 active:scale-[0.98] transition"
+        className="mt-4 w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-3.5 active:scale-[0.98] transition"
       >
         + New story
       </button>
@@ -162,7 +162,7 @@ function Editor({
         </button>
         <button
           onClick={() => onSave(draft)}
-          className="flex-1 rounded-2xl bg-[var(--ink)] text-white font-semibold py-3.5 active:scale-[0.98] transition"
+          className="flex-1 rounded-2xl bg-[var(--accent)] text-white font-semibold py-3.5 active:scale-[0.98] transition"
         >
           Save
         </button>
@@ -179,7 +179,7 @@ function Editor({
 
       {crit && (
         <div className="mt-4 fade-up">
-          <div className="card p-5 text-white bg-[var(--ink)] flex items-center gap-4">
+          <div className="card p-5 text-white bg-[var(--accent)] flex items-center gap-4">
             <div
               className={`h-14 w-14 shrink-0 rounded-full grid place-items-center text-xl font-extrabold ${
                 crit.score >= 75

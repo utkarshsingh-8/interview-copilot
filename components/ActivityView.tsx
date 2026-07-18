@@ -38,7 +38,7 @@ export default function ActivityView() {
       </h1>
 
       {/* streak banner */}
-      <div className="mt-4 card p-4 text-white bg-[var(--ink)] flex items-center gap-3">
+      <div className="mt-4 card p-4 text-white bg-[var(--accent)] flex items-center gap-3">
         <span className="text-3xl">🔥</span>
         <div>
           <p className="text-2xl font-extrabold leading-none">

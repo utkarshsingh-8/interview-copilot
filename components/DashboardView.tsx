@@ -122,7 +122,7 @@ export default function DashboardView() {
       </div>
 
       {/* readiness card */}
-      <div className="mt-6 card p-6 text-white bg-[var(--ink)] relative overflow-hidden">
+      <div className="mt-6 card p-6 text-white bg-[var(--accent)] relative overflow-hidden">
         <div className="absolute -right-8 -top-10 h-40 w-40 rounded-full bg-[var(--violet)] opacity-40 blur-2xl" />
         <div className="relative flex items-center gap-5">
           <Ring value={ready ? stats.readiness : 0} />
@@ -191,7 +191,7 @@ export default function DashboardView() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path
             d="m9 6 6 6-6 6"
-            stroke="#9a95ac"
+            stroke="var(--ink-faint)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -239,7 +239,7 @@ export default function DashboardView() {
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
           <path
             d="m9 6 6 6-6 6"
-            stroke="#9a95ac"
+            stroke="var(--ink-faint)"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -328,7 +328,7 @@ export default function DashboardView() {
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path
                   d="m9 6 6 6-6 6"
-                  stroke="#9a95ac"
+                  stroke="var(--ink-faint)"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"

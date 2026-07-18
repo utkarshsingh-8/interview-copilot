@@ -18,8 +18,56 @@
   --rose-ink: #b1607a;
   --mint: #d8efe4;
   --line: #ece9f5;
+  /* accent = solid surface for primary buttons & hero cards (white text) */
+  --accent: #1c1830;
   --shadow: 0 10px 30px -12px rgba(60, 45, 120, 0.28);
   --shadow-sm: 0 4px 14px -8px rgba(60, 45, 120, 0.25);
+  color-scheme: light;
+}
+
+/* Dark theme values — reused by manual override and system preference. */
+:root[data-theme="dark"] {
+  --bg: #131120;
+  --bg-2: #1a1728;
+  --surface: #211d31;
+  --surface-muted: #2b2540;
+  --ink: #f1eefb;
+  --ink-soft: #b3adc9;
+  --ink-faint: #837d99;
+  --violet: #8f80ea;
+  --violet-soft: #2f2850;
+  --violet-ink: #c3b6ff;
+  --rose: #3c2733;
+  --rose-ink: #f2a9c1;
+  --mint: #21382f;
+  --line: #322b47;
+  --accent: #7c6be0;
+  --shadow: 0 12px 34px -12px rgba(0, 0, 0, 0.7);
+  --shadow-sm: 0 4px 16px -8px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131120;
+    --bg-2: #1a1728;
+    --surface: #211d31;
+    --surface-muted: #2b2540;
+    --ink: #f1eefb;
+    --ink-soft: #b3adc9;
+    --ink-faint: #837d99;
+    --violet: #8f80ea;
+    --violet-soft: #2f2850;
+    --violet-ink: #c3b6ff;
+    --rose: #3c2733;
+    --rose-ink: #f2a9c1;
+    --mint: #21382f;
+    --line: #322b47;
+    --accent: #7c6be0;
+    --shadow: 0 12px 34px -12px rgba(0, 0, 0, 0.7);
+    --shadow-sm: 0 4px 16px -8px rgba(0, 0, 0, 0.6);
+    color-scheme: dark;
+  }
 }
 
 @theme inline {

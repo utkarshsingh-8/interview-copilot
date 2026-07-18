@@ -130,7 +130,7 @@ export default function LearnView() {
             m.role === "user" ? (
               <div
                 key={i}
-                className="self-end max-w-[85%] rounded-2xl rounded-br-md bg-[var(--ink)] text-white px-4 py-3 text-sm"
+                className="self-end max-w-[85%] rounded-2xl rounded-br-md bg-[var(--accent)] text-white px-4 py-3 text-sm"
               >
                 {m.content}
               </div>
@@ -179,7 +179,7 @@ export default function LearnView() {
             <button
               onClick={() => ask(input)}
               disabled={busy || !input.trim()}
-              className="h-10 w-10 rounded-xl bg-[var(--ink)] grid place-items-center disabled:opacity-40 active:scale-95 transition"
+              className="h-10 w-10 rounded-xl bg-[var(--accent)] grid place-items-center disabled:opacity-40 active:scale-95 transition"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path
@@ -225,8 +225,8 @@ function ToolsDirectory({ onAsk }: { onAsk: (q: string) => void }) {
 
       <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-sm)] mb-4">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="7" stroke="#9a95ac" strokeWidth="2" />
-          <path d="m20 20-3-3" stroke="#9a95ac" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="11" cy="11" r="7" stroke="var(--ink-faint)" strokeWidth="2" />
+          <path d="m20 20-3-3" stroke="var(--ink-faint)" strokeWidth="2" strokeLinecap="round" />
         </svg>
         <input
           value={query}

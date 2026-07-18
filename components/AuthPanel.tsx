@@ -125,7 +125,7 @@ export default function AuthPanel() {
       <button
         onClick={submit}
         disabled={busy || !email || password.length < 6}
-        className="w-full rounded-xl bg-[var(--ink)] text-white text-sm font-semibold py-3 disabled:opacity-50 active:scale-[0.98] transition"
+        className="w-full rounded-xl bg-[var(--accent)] text-white text-sm font-semibold py-3 disabled:opacity-50 active:scale-[0.98] transition"
       >
         {busy ? "…" : mode === "in" ? "Sign in" : "Create account"}
       </button>

@@ -10,7 +10,7 @@ type Tab = {
   icon: (active: boolean) => React.ReactNode;
 };
 
-const col = (a: boolean) => (a ? "#1c1830" : "#9a95ac");
+const col = (a: boolean) => (a ? "var(--ink)" : "var(--ink-faint)");
 
 const tabs: Tab[] = [
   {

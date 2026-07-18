@@ -219,7 +219,7 @@ export default function ResumeEditor({
         </button>
         <button
           onClick={() => onSave(draft)}
-          className="flex-[2] rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 active:scale-[0.98] transition"
+          className="flex-[2] rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 active:scale-[0.98] transition"
         >
           Save resume
         </button>

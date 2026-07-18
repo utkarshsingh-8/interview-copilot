@@ -84,7 +84,7 @@ export default function ResumeImport({
           onClick={() => setMode("pdf")}
           className={`pill !text-xs ${
             mode === "pdf"
-              ? "bg-[var(--ink)] text-white"
+              ? "bg-[var(--accent)] text-white"
               : "bg-[var(--surface)] text-[var(--ink-soft)] shadow-[var(--shadow-sm)]"
           }`}
         >
@@ -94,7 +94,7 @@ export default function ResumeImport({
           onClick={() => setMode("text")}
           className={`pill !text-xs ${
             mode === "text"
-              ? "bg-[var(--ink)] text-white"
+              ? "bg-[var(--accent)] text-white"
               : "bg-[var(--surface)] text-[var(--ink-soft)] shadow-[var(--shadow-sm)]"
           }`}
         >
@@ -140,7 +140,7 @@ export default function ResumeImport({
           <button
             onClick={parseText}
             disabled={busy}
-            className="mt-3 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-60 active:scale-[0.98] transition"
+            className="mt-3 w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 disabled:opacity-60 active:scale-[0.98] transition"
           >
             {busy ? "Parsing…" : "Parse with AI"}
           </button>

@@ -215,7 +215,7 @@ export default function HubView() {
                 >
                   <path
                     d="m6 9 6 6 6-6"
-                    stroke="#9a95ac"
+                    stroke="var(--ink-faint)"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -232,7 +232,7 @@ export default function HubView() {
                     </div>
                     <button
                       onClick={() => copy(t.id, filled)}
-                      className="mt-3 w-full rounded-xl bg-[var(--ink)] text-white text-sm font-semibold py-3 active:scale-[0.98] transition"
+                      className="mt-3 w-full rounded-xl bg-[var(--accent)] text-white text-sm font-semibold py-3 active:scale-[0.98] transition"
                     >
                       {copied === t.id ? "✓ Copied!" : "Copy to clipboard"}
                     </button>

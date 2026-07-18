@@ -70,7 +70,7 @@ export default function ApplicationsView() {
 
       <button
         onClick={() => setEditing(create())}
-        className="mt-4 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-3.5 active:scale-[0.98] transition"
+        className="mt-4 w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-3.5 active:scale-[0.98] transition"
       >
         + Add application
       </button>
@@ -194,7 +194,7 @@ function Editor({
               onClick={() => set({ stage: s })}
               className={`pill !text-xs ${
                 draft.stage === s
-                  ? "bg-[var(--ink)] text-white"
+                  ? "bg-[var(--accent)] text-white"
                   : `${stageMeta[s].color}`
               }`}
             >
@@ -245,7 +245,7 @@ function Editor({
 
       {analysis && (
         <div className="mb-4 fade-up">
-          <div className="card p-4 text-white bg-[var(--ink)] flex items-center gap-3">
+          <div className="card p-4 text-white bg-[var(--accent)] flex items-center gap-3">
             <div
               className={`h-12 w-12 shrink-0 rounded-full grid place-items-center text-lg font-extrabold ${
                 analysis.matchScore >= 70
@@ -331,7 +331,7 @@ function Editor({
         </button>
         <button
           onClick={() => onSave(draft)}
-          className="flex-1 rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 active:scale-[0.98] transition"
+          className="flex-1 rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 active:scale-[0.98] transition"
         >
           Save
         </button>

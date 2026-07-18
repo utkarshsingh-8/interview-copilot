@@ -9,6 +9,7 @@ import { useResume } from "@/lib/resumeStore";
 import { useSavedQuestions } from "@/lib/savedQuestions";
 import { categoryMeta, type Category, type Question } from "@/lib/questions";
 import AuthPanel from "@/components/AuthPanel";
+import { useTheme, type Theme } from "@/lib/theme";
 import type { Resume } from "@/lib/resume";
 
 const categories = Object.keys(categoryMeta) as Category[];
@@ -168,7 +169,7 @@ export default function ProfileView() {
             setEditorInitial(null);
             setEditing(true);
           }}
-          className="pill bg-[var(--ink)] text-white !text-xs"
+          className="pill bg-[var(--accent)] text-white !text-xs"
         >
           ✏️ Edit
         </button>
@@ -207,7 +208,7 @@ export default function ProfileView() {
       </div>
 
       {/* AI resume review */}
-      <div className="mt-4 card p-5 text-white bg-[var(--ink)]">
+      <div className="mt-4 card p-5 text-white bg-[var(--accent)]">
         <p className="font-bold text-lg">AI Resume Review</p>
         <p className="text-white/70 text-sm mt-1">
           Get a senior recruiter&apos;s honest take with concrete rewrites.
@@ -298,6 +299,7 @@ export default function ProfileView() {
         Settings
       </h2>
       <div className="flex flex-col gap-2">
+        <ThemePicker />
         <AuthPanel />
         <LockModeToggle />
         <button
@@ -334,6 +336,38 @@ export default function ProfileView() {
       <p className="mt-6 text-center text-[11px] text-[var(--ink-faint)]">
         Interview Copilot · built for {resume.name}
       </p>
+    </div>
+  );
+}
+
+function ThemePicker() {
+  const { theme, setTheme } = useTheme();
+  const opts: { key: Theme; label: string; icon: string }[] = [
+    { key: "system", label: "System", icon: "🖥️" },
+    { key: "light", label: "Light", icon: "☀️" },
+    { key: "dark", label: "Dark", icon: "🌙" },
+  ];
+  return (
+    <div className="card-flat p-3">
+      <p className="text-sm font-semibold text-[var(--ink)] mb-2 px-1">
+        🎨 Appearance
+      </p>
+      <div className="flex gap-1 p-1 rounded-2xl bg-[var(--surface-muted)]">
+        {opts.map((o) => (
+          <button
+            key={o.key}
+            onClick={() => setTheme(o.key)}
+            className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition ${
+              theme === o.key
+                ? "bg-[var(--surface)] text-[var(--ink)] shadow-[var(--shadow-sm)]"
+                : "text-[var(--ink-soft)]"
+            }`}
+          >
+            <span className="mr-1">{o.icon}</span>
+            {o.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

@@ -150,7 +150,7 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
           <button
             onClick={registerPasskey}
             disabled={pkBusy}
-            className="w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition"
+            className="w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition"
           >
             {pkBusy ? "Setting up…" : "Enable Face ID"}
           </button>
@@ -175,7 +175,7 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
           <button
             onClick={passkeySignIn}
             disabled={pkBusy}
-            className="mt-6 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
+            className="mt-6 w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
           >
             <FaceMini /> {pkBusy ? "Scanning…" : "Sign in with Face ID"}
           </button>
@@ -208,7 +208,7 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
         <button
           onClick={submitEmail}
           disabled={busy || !isSupabaseConfigured()}
-          className="w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition"
+          className="w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition"
         >
           {busy ? "…" : mode === "in" ? "Sign in" : "Create account"}
         </button>
@@ -291,7 +291,7 @@ function FaceIcon() {
       />
       <path
         d="M9 10v1M15 10v1M9.5 15c.7.7 1.6 1 2.5 1s1.8-.3 2.5-1M12 10v3h-.8"
-        stroke="#1c1830"
+        stroke="var(--ink)"
         strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"

@@ -118,7 +118,7 @@ export default function SavedView() {
             <div className="flex-1 grid place-items-center">
               <button
                 onClick={() => setFlipped(true)}
-                className="rounded-2xl bg-[var(--ink)] text-white font-semibold px-6 py-3 active:scale-95 transition"
+                className="rounded-2xl bg-[var(--accent)] text-white font-semibold px-6 py-3 active:scale-95 transition"
               >
                 Show answer
               </button>
@@ -166,7 +166,7 @@ export default function SavedView() {
         </div>
         <button
           onClick={() => setComposing((v) => !v)}
-          className="h-11 w-11 rounded-full bg-[var(--ink)] text-white grid place-items-center text-xl active:scale-95 transition"
+          className="h-11 w-11 rounded-full bg-[var(--accent)] text-white grid place-items-center text-xl active:scale-95 transition"
           aria-label="New note"
         >
           {composing ? "✕" : "+"}
@@ -219,7 +219,7 @@ export default function SavedView() {
           />
           <button
             onClick={saveNote}
-            className="mt-2 w-full rounded-xl bg-[var(--ink)] text-white text-sm font-semibold py-3 active:scale-[0.98] transition"
+            className="mt-2 w-full rounded-xl bg-[var(--accent)] text-white text-sm font-semibold py-3 active:scale-[0.98] transition"
           >
             Save note
           </button>
@@ -229,8 +229,8 @@ export default function SavedView() {
       {/* search */}
       <div className="mt-4 flex items-center gap-2 rounded-2xl bg-[var(--surface)] px-4 py-3 shadow-[var(--shadow-sm)]">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <circle cx="11" cy="11" r="7" stroke="#9a95ac" strokeWidth="2" />
-          <path d="m20 20-3-3" stroke="#9a95ac" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="11" cy="11" r="7" stroke="var(--ink-faint)" strokeWidth="2" />
+          <path d="m20 20-3-3" stroke="var(--ink-faint)" strokeWidth="2" strokeLinecap="round" />
         </svg>
         <input
           value={query}
@@ -248,7 +248,7 @@ export default function SavedView() {
             onClick={() => setFilter(f)}
             className={`pill !py-1.5 !px-3 !text-xs ${
               filter === f
-                ? "bg-[var(--ink)] text-white"
+                ? "bg-[var(--accent)] text-white"
                 : "bg-[var(--surface)] text-[var(--ink-soft)] shadow-[var(--shadow-sm)]"
             }`}
           >
@@ -285,7 +285,7 @@ export default function SavedView() {
                 >
                   <path
                     d="m6 9 6 6 6-6"
-                    stroke="#9a95ac"
+                    stroke="var(--ink-faint)"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"

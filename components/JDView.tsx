@@ -79,7 +79,7 @@ export default function JDView() {
       <button
         onClick={analyze}
         disabled={busy}
-        className="mt-3 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-60 active:scale-[0.98] transition"
+        className="mt-3 w-full rounded-2xl bg-[var(--accent)] text-white font-semibold py-4 disabled:opacity-60 active:scale-[0.98] transition"
       >
         {busy ? "Analyzing…" : result ? "Re-analyze" : "Analyze fit"}
       </button>
@@ -88,7 +88,7 @@ export default function JDView() {
       {result && (
         <div className="mt-6 fade-up">
           {/* match score */}
-          <div className="card p-5 text-white bg-[var(--ink)] flex items-center gap-4">
+          <div className="card p-5 text-white bg-[var(--accent)] flex items-center gap-4">
             <div
               className={`h-16 w-16 shrink-0 rounded-full grid place-items-center text-2xl font-extrabold ${
                 result.matchScore >= 70
@@ -200,7 +200,7 @@ export default function JDView() {
                         >
                           <path
                             d="m6 9 6 6 6-6"
-                            stroke="#9a95ac"
+                            stroke="var(--ink-faint)"
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"

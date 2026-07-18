@@ -27,18 +27,27 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#e9e5f4",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#e9e5f4" },
+    { media: "(prefers-color-scheme: dark)", color: "#131120" },
+  ],
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
 };
 
+// Runs before paint to apply the saved theme and avoid a light→dark flash.
+const themeScript = `(function(){try{var t=localStorage.getItem('copilot.theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t;}}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${jakarta.variable} h-full`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full">
         <SWRegister />
         <LockGate>{children}</LockGate>
