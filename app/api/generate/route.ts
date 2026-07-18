@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { groqChat, hasGroqKey, resumeContext } from "@/lib/ai";
 import { categoryMeta, type Category } from "@/lib/questions";
+import { requireOwner } from "@/lib/serverAuth";
 
 export const runtime = "nodejs";
 
 const validCategories = Object.keys(categoryMeta) as Category[];
 
 export async function POST(req: Request) {
+  const gate = await requireOwner(req);
+  if (!gate.ok)
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   if (!hasGroqKey()) {
     return NextResponse.json(
       {

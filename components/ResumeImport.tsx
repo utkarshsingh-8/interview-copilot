@@ -1,4 +1,5 @@
 "use client";
+import { authedFetch } from "@/lib/authedFetch";
 
 import { useRef, useState } from "react";
 import type { Resume } from "@/lib/resume";
@@ -24,7 +25,7 @@ export default function ResumeImport({
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/parse-resume", { method: "POST", body: fd });
+      const res = await authedFetch("/api/parse-resume", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Parse failed");
       onParsed(data.resume as Resume);
@@ -43,7 +44,7 @@ export default function ResumeImport({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/parse-resume", {
+      const res = await authedFetch("/api/parse-resume", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),

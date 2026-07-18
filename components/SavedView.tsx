@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useNotes, type SavedType } from "@/lib/notes";
+import { useNotes, type SavedItem, type SavedType } from "@/lib/notes";
+import { useSR, review as srReview, type SRGrade } from "@/lib/sr";
 
 const typeMeta: Record<SavedType, { label: string; emoji: string; color: string }> = {
   learn: { label: "Learned", emoji: "📚", color: "bg-[#e7eefb] text-[#3a6bd0]" },
@@ -13,6 +14,11 @@ const filters: ("all" | SavedType)[] = ["all", "learn", "qa", "note"];
 
 export default function SavedView() {
   const { notes, remove, add } = useNotes();
+  const { dueList } = useSR();
+  const [reviewing, setReviewing] = useState(false);
+  const [rIdx, setRIdx] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [queue, setQueue] = useState<SavedItem[]>([]);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | SavedType>("all");
   const [openId, setOpenId] = useState<string | null>(null);
@@ -33,6 +39,11 @@ export default function SavedView() {
     });
   }, [notes, query, filter]);
 
+  const dueNotes = useMemo(() => {
+    const ids = new Set(dueList(notes.map((n) => n.id)));
+    return notes.filter((n) => ids.has(n.id));
+  }, [notes, dueList]);
+
   function saveNote() {
     if (!nTitle.trim() && !nBody.trim()) return;
     add({
@@ -43,6 +54,103 @@ export default function SavedView() {
     setNTitle("");
     setNBody("");
     setComposing(false);
+  }
+
+  function startReview() {
+    if (dueNotes.length === 0) return;
+    setQueue(dueNotes);
+    setRIdx(0);
+    setFlipped(false);
+    setReviewing(true);
+  }
+
+  function grade(g: SRGrade) {
+    const item = queue[rIdx];
+    if (item) srReview(item.id, g);
+    if (rIdx + 1 >= queue.length) {
+      setReviewing(false);
+    } else {
+      setRIdx(rIdx + 1);
+      setFlipped(false);
+    }
+  }
+
+  // ---------- REVIEW MODE ----------
+  if (reviewing && queue[rIdx]) {
+    const item = queue[rIdx];
+    return (
+      <div className="fade-up">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setReviewing(false)}
+            className="text-sm font-semibold text-[var(--ink-soft)]"
+          >
+            ✕ End review
+          </button>
+          <span className="pill bg-[var(--surface)] text-[var(--ink-soft)] shadow-[var(--shadow-sm)]">
+            {rIdx + 1} / {queue.length}
+          </span>
+        </div>
+
+        <div className="mt-4 h-1.5 w-full rounded-full bg-[var(--surface)] overflow-hidden">
+          <div
+            className="h-full bg-[var(--violet)] transition-all"
+            style={{ width: `${(rIdx / queue.length) * 100}%` }}
+          />
+        </div>
+
+        <div className="mt-6 card p-6 min-h-[40vh] flex flex-col">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-[var(--violet-ink)]">
+            Recall this
+          </span>
+          <h2 className="mt-2 text-xl font-extrabold leading-snug text-[var(--ink)]">
+            {item.title}
+          </h2>
+          {flipped ? (
+            <div className="mt-4 fade-up flex-1">
+              <div className="rounded-2xl bg-[var(--surface-muted)] p-4">
+                <p className="text-[14px] leading-relaxed text-[var(--ink)] whitespace-pre-line">
+                  {item.content || "(no detail saved)"}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 grid place-items-center">
+              <button
+                onClick={() => setFlipped(true)}
+                className="rounded-2xl bg-[var(--ink)] text-white font-semibold px-6 py-3 active:scale-95 transition"
+              >
+                Show answer
+              </button>
+            </div>
+          )}
+        </div>
+
+        {flipped && (
+          <div className="mt-4 grid grid-cols-4 gap-2 fade-up">
+            {(
+              [
+                ["again", "Again", "bg-[#fbe6ec] text-[#b1607a]"],
+                ["hard", "Hard", "bg-[#fdf1e3] text-[#c08a3a]"],
+                ["good", "Good", "bg-[#e7eefb] text-[#3a6bd0]"],
+                ["easy", "Easy", "bg-[#e2f3ea] text-[#2f8a5b]"],
+              ] as [SRGrade, string, string][]
+            ).map(([g, label, color]) => (
+              <button
+                key={g}
+                onClick={() => grade(g)}
+                className={`rounded-2xl py-3.5 text-sm font-bold active:scale-95 transition ${color}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="mt-3 text-center text-xs text-[var(--ink-faint)]">
+          Rate honestly — weak cards come back sooner.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -64,6 +172,35 @@ export default function SavedView() {
           {composing ? "✕" : "+"}
         </button>
       </div>
+
+      {notes.length > 0 && (
+        <button
+          onClick={startReview}
+          disabled={dueNotes.length === 0}
+          className={`mt-4 w-full card p-4 flex items-center gap-3 text-left transition active:scale-[0.99] ${
+            dueNotes.length ? "bg-[var(--violet)] text-white" : ""
+          }`}
+        >
+          <span className="text-2xl">🔁</span>
+          <div className="flex-1">
+            <p className={`font-bold text-sm ${dueNotes.length ? "" : "text-[var(--ink)]"}`}>
+              {dueNotes.length
+                ? `Review ${dueNotes.length} due`
+                : "All caught up 🎉"}
+            </p>
+            <p
+              className={`text-xs ${dueNotes.length ? "text-white/80" : "text-[var(--ink-faint)]"}`}
+            >
+              Spaced repetition — resurfaces what you're weakest on
+            </p>
+          </div>
+          {dueNotes.length > 0 && (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="m9 6 6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+      )}
 
       {composing && (
         <div className="mt-4 card p-4 fade-up">

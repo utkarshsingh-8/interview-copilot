@@ -61,6 +61,7 @@ create table if not exists public.applications (
   url text default '',
   next_action text default '',
   notes text default '',
+  jd text default '',
   updated_at timestamptz not null default now()
 );
 
@@ -76,6 +77,19 @@ create table if not exists public.activity (
 create index if not exists activity_user_created_idx
   on public.activity (user_id, created_at desc);
 
+-- 8. STAR behavioral stories
+create table if not exists public.stories (
+  id uuid primary key default gen_random_uuid (),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  title text not null default '',
+  situation text default '',
+  task text default '',
+  action text default '',
+  result text default '',
+  tags text[] default '{}',
+  updated_at timestamptz not null default now()
+);
+
 -- Row Level Security: users only see their own rows
 alter table public.resumes enable row level security;
 alter table public.progress enable row level security;
@@ -84,6 +98,7 @@ alter table public.saved_questions enable row level security;
 alter table public.notes enable row level security;
 alter table public.applications enable row level security;
 alter table public.activity enable row level security;
+alter table public.stories enable row level security;
 
 do $$
 begin
@@ -121,6 +136,11 @@ begin
   -- activity
   if not exists (select 1 from pg_policies where tablename = 'activity' and policyname = 'own_activity') then
     create policy own_activity on public.activity
+      for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
+  end if;
+  -- stories
+  if not exists (select 1 from pg_policies where tablename = 'stories' and policyname = 'own_stories') then
+    create policy own_stories on public.stories
       for all using (auth.uid () = user_id) with check (auth.uid () = user_id);
   end if;
 end $$;

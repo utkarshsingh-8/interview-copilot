@@ -1,4 +1,5 @@
 "use client";
+import { authedFetch } from "@/lib/authedFetch";
 
 import { useState } from "react";
 import { readResume } from "@/lib/resumeStore";
@@ -32,7 +33,7 @@ export default function JDView() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/jd", {
+      const res = await authedFetch("/api/jd", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jd, company, resume: readResume() }),

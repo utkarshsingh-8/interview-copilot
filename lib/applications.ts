@@ -36,6 +36,7 @@ export type Application = {
   url: string;
   nextAction: string;
   notes: string;
+  jd: string;
   updatedAt: string;
 };
 
@@ -78,6 +79,7 @@ async function cloudUpsert(a: Application) {
       url: a.url,
       next_action: a.nextAction,
       notes: a.notes,
+      jd: a.jd,
       updated_at: a.updatedAt,
     });
   } catch {
@@ -117,6 +119,7 @@ async function reconcileCloud(): Promise<Application[] | null> {
         url: r.url ?? "",
         nextAction: r.next_action ?? "",
         notes: r.notes ?? "",
+        jd: r.jd ?? "",
         updatedAt: r.updated_at,
       }));
       localStorage.setItem(KEY, JSON.stringify(items));
@@ -174,6 +177,7 @@ export function useApplications() {
       url: "",
       nextAction: "",
       notes: "",
+      jd: "",
       updatedAt: new Date().toISOString(),
     };
   }, []);

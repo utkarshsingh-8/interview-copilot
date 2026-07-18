@@ -1,4 +1,5 @@
 "use client";
+import { authedFetch } from "@/lib/authedFetch";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -300,7 +301,7 @@ export default function MockView() {
     setGrading(true);
     setGradeErr(null);
     try {
-      const res = await fetch("/api/grade", {
+      const res = await authedFetch("/api/grade", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -338,7 +339,7 @@ export default function MockView() {
     setType({ key: `topic-${topic}`, label: topic, emoji: "🎯", cats: [], desc: topic });
     setPhase("loading");
     try {
-      const res = await fetch("/api/generate", {
+      const res = await authedFetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ topic, count: 5, resume: readResume() }),

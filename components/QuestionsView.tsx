@@ -1,4 +1,5 @@
 "use client";
+import { authedFetch } from "@/lib/authedFetch";
 
 import { useMemo, useState } from "react";
 import {
@@ -59,7 +60,7 @@ export default function QuestionsView() {
     setGenBusy(true);
     setGenError(null);
     try {
-      const res = await fetch("/api/generate", {
+      const res = await authedFetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ category: genCat, count: 4, resume: readResume() }),

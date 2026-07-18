@@ -1,4 +1,5 @@
 "use client";
+import { authedFetch } from "@/lib/authedFetch";
 
 import { useRef, useState } from "react";
 import { readResume } from "@/lib/resumeStore";
@@ -42,7 +43,7 @@ export default function LearnView() {
     setMessages((m) => [...m, { role: "user", content: question }]);
     setBusy(true);
     try {
-      const res = await fetch("/api/learn", {
+      const res = await authedFetch("/api/learn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, resume: readResume() }),

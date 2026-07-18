@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import LockGate from "@/components/LockGate";
+import SWRegister from "@/components/SWRegister";
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -38,6 +39,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${jakarta.variable} h-full`}>
       <body className="min-h-full">
+        <SWRegister />
         <LockGate>{children}</LockGate>
       </body>
     </html>

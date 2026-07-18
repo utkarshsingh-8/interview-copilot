@@ -1,12 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { authedFetch } from "@/lib/authedFetch";
+import { readResume } from "@/lib/resumeStore";
+import { addSaved } from "@/lib/notes";
 import {
   stageMeta,
   useApplications,
   type Application,
   type Stage,
 } from "@/lib/applications";
+
+type JDAnalysis = {
+  matchScore: number;
+  focus: string[];
+  matched: string[];
+  missing: string[];
+  advice: string;
+  questions: { id: string; question: string; answer: string; tags: string[] }[];
+};
 
 const stages = Object.keys(stageMeta) as Stage[];
 const activeStages: Stage[] = ["wishlist", "applied", "oa", "phone", "onsite"];
@@ -121,6 +133,37 @@ function Editor({
   const [draft, setDraft] = useState<Application>(app);
   const set = (patch: Partial<Application>) =>
     setDraft((d) => ({ ...d, ...patch }));
+  const [jdBusy, setJdBusy] = useState(false);
+  const [jdErr, setJdErr] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<JDAnalysis | null>(null);
+  const [savedQ, setSavedQ] = useState<string | null>(null);
+
+  async function analyzeJD() {
+    if ((draft.jd || "").trim().length < 60) {
+      setJdErr("Paste a fuller job description first.");
+      return;
+    }
+    setJdBusy(true);
+    setJdErr(null);
+    try {
+      const res = await authedFetch("/api/jd", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jd: draft.jd,
+          company: draft.company,
+          resume: readResume(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Analysis failed");
+      setAnalysis(data as JDAnalysis);
+    } catch (e) {
+      setJdErr(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setJdBusy(false);
+    }
+  }
 
   return (
     <div className="fade-up">
@@ -180,6 +223,93 @@ function Editor({
           className="w-full rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm outline-none shadow-[var(--shadow-sm)] resize-none leading-relaxed placeholder:text-[var(--ink-faint)]"
         />
       </Field>
+
+      {/* JD & prep for this role */}
+      <Field label="Job description (for AI prep)">
+        <textarea
+          value={draft.jd}
+          onChange={(e) => set({ jd: e.target.value })}
+          rows={4}
+          placeholder="Paste the JD to get a match score & likely questions for this specific role…"
+          className="w-full rounded-xl bg-[var(--surface)] px-3 py-2.5 text-sm outline-none shadow-[var(--shadow-sm)] resize-none leading-relaxed placeholder:text-[var(--ink-faint)]"
+        />
+      </Field>
+      <button
+        onClick={analyzeJD}
+        disabled={jdBusy}
+        className="w-full rounded-2xl bg-[var(--violet)] text-white font-semibold py-3.5 disabled:opacity-60 active:scale-[0.98] transition mb-3"
+      >
+        {jdBusy ? "Analyzing…" : "🎯 Analyze fit & get questions"}
+      </button>
+      {jdErr && <p className="mb-3 text-sm text-[var(--rose-ink)]">{jdErr}</p>}
+
+      {analysis && (
+        <div className="mb-4 fade-up">
+          <div className="card p-4 text-white bg-[var(--ink)] flex items-center gap-3">
+            <div
+              className={`h-12 w-12 shrink-0 rounded-full grid place-items-center text-lg font-extrabold ${
+                analysis.matchScore >= 70
+                  ? "bg-[#2f8a5b]"
+                  : analysis.matchScore >= 45
+                    ? "bg-[#c08a3a]"
+                    : "bg-[#b1607a]"
+              }`}
+            >
+              {analysis.matchScore}
+            </div>
+            <p className="font-bold text-sm">Match for this role</p>
+          </div>
+          {analysis.missing.length > 0 && (
+            <div className="mt-2 card-flat p-3">
+              <p className="text-xs font-bold text-[#c08a3a] mb-1.5">
+                ⚠ Shore up
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {analysis.missing.map((m, i) => (
+                  <span
+                    key={i}
+                    className="text-[11px] font-semibold text-[var(--ink)] bg-[#fdf1e3] rounded-full px-2 py-0.5"
+                  >
+                    {m}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {analysis.questions.length > 0 && (
+            <div className="mt-2 flex flex-col gap-2">
+              {analysis.questions.map((q) => (
+                <div key={q.id} className="card-flat p-3">
+                  <p className="text-sm font-semibold text-[var(--ink)]">
+                    {q.question}
+                  </p>
+                  <button
+                    onClick={() => {
+                      addSaved({
+                        type: "qa",
+                        title: q.question,
+                        content: q.answer,
+                        tags: [draft.company || "role", ...(q.tags || [])].slice(0, 5),
+                      });
+                      setSavedQ(q.id);
+                      setTimeout(
+                        () => setSavedQ((s) => (s === q.id ? null : s)),
+                        1500
+                      );
+                    }}
+                    className="mt-2 text-xs font-semibold text-[var(--violet-ink)]"
+                  >
+                    {savedQ === q.id ? "✓ Saved" : "🔖 Save answer"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-2 text-[11px] text-[var(--ink-faint)]">
+            Tip: hit Save below to keep this JD with the application.
+          </p>
+        </div>
+      )}
 
       {draft.url && (
         <a

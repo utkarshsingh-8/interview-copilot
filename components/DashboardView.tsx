@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import Avatar3D from "@/components/Avatar3D";
 import { useResume } from "@/lib/resumeStore";
+import { useNotes } from "@/lib/notes";
+import { useSR } from "@/lib/sr";
 import {
   categoryMeta,
   questions,
@@ -17,6 +19,24 @@ const categories = Object.keys(categoryMeta) as Category[];
 export default function DashboardView() {
   const { progress, ready } = useProgress();
   const { resume } = useResume();
+  const { notes } = useNotes();
+  const { due } = useSR();
+  const dueReviews = due(notes.map((n) => n.id));
+
+  // gentle local reminder when the app opens and reviews are due
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted" || dueReviews === 0) return;
+    const stamp = new Date().toDateString();
+    if (localStorage.getItem("copilot.notified") === stamp) return;
+    localStorage.setItem("copilot.notified", stamp);
+    try {
+      new Notification("Interview Copilot", {
+        body: `You have ${dueReviews} card${dueReviews > 1 ? "s" : ""} due for review today.`,
+        icon: "/icon.svg",
+      });
+    } catch {}
+  }, [dueReviews]);
 
   const stats = useMemo(() => {
     const total = questions.length;
@@ -133,6 +153,27 @@ export default function DashboardView() {
         />
       </div>
 
+      {/* due review reminder */}
+      {dueReviews > 0 && (
+        <Link
+          href="/saved"
+          className="mt-4 card p-4 flex items-center gap-3 bg-[var(--violet)] text-white active:scale-[0.99] transition"
+        >
+          <span className="text-2xl">🔁</span>
+          <div className="flex-1">
+            <p className="font-bold text-sm">
+              {dueReviews} card{dueReviews > 1 ? "s" : ""} due for review
+            </p>
+            <p className="text-white/80 text-xs">
+              Spaced repetition keeps weak topics sharp
+            </p>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="m9 6 6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+      )}
+
       {/* activity CTA */}
       <Link
         href="/activity"
@@ -174,6 +215,31 @@ export default function DashboardView() {
           <path
             d="m9 6 6 6-6 6"
             stroke="#fff"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </Link>
+
+      {/* STAR CTA */}
+      <Link
+        href="/star"
+        className="mt-3 card-flat p-4 flex items-center gap-3 active:scale-[0.99] transition"
+      >
+        <span className="text-2xl">🎭</span>
+        <div className="flex-1">
+          <p className="font-bold text-sm text-[var(--ink)]">
+            Behavioral STAR stories
+          </p>
+          <p className="text-xs text-[var(--ink-faint)]">
+            Build &amp; AI-critique your stories
+          </p>
+        </div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+          <path
+            d="m9 6 6 6-6 6"
+            stroke="#9a95ac"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

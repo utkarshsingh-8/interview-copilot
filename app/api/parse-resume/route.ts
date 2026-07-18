@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 import { extractText, getDocumentProxy } from "unpdf";
 import { groqChat, hasGroqKey } from "@/lib/ai";
 import { resume as defaultResume, type Resume } from "@/lib/resume";
+import { requireOwner } from "@/lib/serverAuth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: Request) {
+  const gate = await requireOwner(req);
+  if (!gate.ok)
+    return NextResponse.json({ error: gate.error }, { status: gate.status });
   if (!hasGroqKey()) {
     return NextResponse.json(
       { error: "AI isn't configured. Add GROQ_API_KEY to parse resumes." },

@@ -1,4 +1,5 @@
 "use client";
+import { authedFetch } from "@/lib/authedFetch";
 
 import { useState } from "react";
 import Avatar3D from "@/components/Avatar3D";
@@ -29,7 +30,7 @@ export default function ProfileView() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/review", {
+      const res = await authedFetch("/api/review", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ resume }),
@@ -55,7 +56,7 @@ export default function ProfileView() {
           done: i,
           msg: `Generating ${categoryMeta[c].label}…`,
         });
-        const res = await fetch("/api/generate", {
+        const res = await authedFetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ category: c, count: 4, resume }),
@@ -297,6 +298,23 @@ export default function ProfileView() {
       </h2>
       <div className="flex flex-col gap-2">
         <AuthPanel />
+        <button
+          onClick={async () => {
+            if (!("Notification" in window)) {
+              alert("Notifications aren't supported on this device.");
+              return;
+            }
+            const p = await Notification.requestPermission();
+            alert(
+              p === "granted"
+                ? "Reminders on — you'll get a nudge when reviews are due."
+                : "Reminders not enabled."
+            );
+          }}
+          className="card-flat px-4 py-3.5 text-left text-sm font-semibold text-[var(--ink)] active:scale-[0.99] transition"
+        >
+          🔔 Enable daily reminders
+        </button>
         <button
           onClick={resetLock}
           className="card-flat px-4 py-3.5 text-left text-sm font-semibold text-[var(--ink)] active:scale-[0.99] transition"

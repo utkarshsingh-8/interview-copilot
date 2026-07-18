@@ -16,8 +16,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { ALLOWED_EMAIL } from "@/lib/config";
 
-const ALLOWED_EMAIL = "utkarshsingh4345@gmail.com";
 const LS_CRED = "copilot.faceid.cred"; // base64url credential id
 
 type Phase = "checking" | "locked" | "offerFace" | "unlocked";
