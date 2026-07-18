@@ -1,45 +1,25 @@
 "use client";
 
 /**
- * LockGate — the private entry gate for the app.
+ * LockGate — private entry gate. The app opens ONLY for the owner.
  *
- * The app opens ONLY for the owner. Two ways in:
- *   1. Email + password (Supabase) — restricted to ALLOWED_EMAIL. Works on any
- *      device and is the root of trust.
- *   2. Face ID (WebAuthn platform authenticator) — a fast device shortcut that
- *      can be enrolled after signing in with email once.
+ * Two real login paths, both creating a genuine Supabase session (so the
+ * protected /api routes and cloud sync work either way):
+ *   1. Passkey (Face ID / Touch ID) via Supabase WebAuthn — no password.
+ *   2. Email + password — the fallback and first-time path.
  *
- * There is no "open without lock" path. On a device with no owner biometric
- * and no email session, the app stays locked.
+ * A passkey is registered right after the first email sign-in. There is no
+ * "open without lock" path.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { ALLOWED_EMAIL } from "@/lib/config";
 
-const LS_CRED = "copilot.faceid.cred"; // base64url credential id
+const PK_FLAG = "copilot.pk.enrolled";
 
-type Phase = "checking" | "locked" | "offerFace" | "unlocked";
-
-function bufToB64url(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let str = "";
-  for (const b of bytes) str += String.fromCharCode(b);
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-function b64urlToBuf(b64: string): ArrayBuffer {
-  const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
-  const str = atob(b64.replace(/-/g, "+").replace(/_/g, "/") + pad);
-  const bytes = new Uint8Array(str.length);
-  for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
-  return bytes.buffer;
-}
-function randomBytes(n: number): Uint8Array<ArrayBuffer> {
-  const a = new Uint8Array(new ArrayBuffer(n));
-  crypto.getRandomValues(a);
-  return a;
-}
+type Phase = "checking" | "locked" | "offerPk" | "unlocked";
 
 export default function LockGate({ children }: { children: React.ReactNode }) {
   const { session, ready: authReady, signIn, signUp } = useAuth();
@@ -48,87 +28,66 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
   const [email, setEmail] = useState(ALLOWED_EMAIL);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pkBusy, setPkBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [webauthn, setWebauthn] = useState(false);
-  const [hasCred, setHasCred] = useState(false);
+  const [pkEnrolled, setPkEnrolled] = useState(false);
 
   useEffect(() => {
     setWebauthn(typeof window !== "undefined" && !!window.PublicKeyCredential);
-    setHasCred(!!localStorage.getItem(LS_CRED));
+    setPkEnrolled(localStorage.getItem(PK_FLAG) === "1");
   }, []);
 
-  // Decide gate state once auth session is known.
   useEffect(() => {
     if (!authReady) return;
     const em = session?.user?.email?.toLowerCase();
     if (em === ALLOWED_EMAIL) {
-      setPhase((p) => (p === "offerFace" ? p : "unlocked"));
-      return;
+      setPhase((p) => (p === "offerPk" ? p : "unlocked"));
+    } else {
+      setPhase((p) => (p === "unlocked" || p === "offerPk" ? p : "locked"));
     }
-    // no valid owner session — stay locked unless already unlocked via Face ID
-    setPhase((p) => (p === "unlocked" || p === "offerFace" ? p : "locked"));
   }, [authReady, session]);
 
-  const enableFace = useCallback(async () => {
-    setBusy(true);
+  const passkeySignIn = useCallback(async () => {
+    const sb = getSupabase();
+    if (!sb) return;
+    setPkBusy(true);
     setError(null);
+    setMsg(null);
     try {
-      const cred = (await navigator.credentials.create({
-        publicKey: {
-          challenge: randomBytes(32),
-          rp: { name: "Interview Copilot", id: window.location.hostname },
-          user: {
-            id: randomBytes(16),
-            name: ALLOWED_EMAIL,
-            displayName: "Utkarsh Singh",
-          },
-          pubKeyCredParams: [
-            { type: "public-key", alg: -7 },
-            { type: "public-key", alg: -257 },
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: "platform",
-            userVerification: "required",
-            residentKey: "preferred",
-          },
-          timeout: 60000,
-          attestation: "none",
-        },
-      })) as PublicKeyCredential | null;
-      if (!cred) throw new Error("No credential");
-      localStorage.setItem(LS_CRED, bufToB64url(cred.rawId));
-      setHasCred(true);
+      const { error } = await sb.auth.signInWithPasskey();
+      if (error) throw error;
       setPhase("unlocked");
     } catch (e) {
-      setError("Couldn't set up Face ID on this device.");
+      setError(
+        "Face ID sign-in failed. If you haven't set it up on this device yet, sign in with email first."
+      );
       console.error(e);
     } finally {
-      setBusy(false);
+      setPkBusy(false);
     }
   }, []);
 
-  const unlockFace = useCallback(async () => {
-    setBusy(true);
+  const registerPasskey = useCallback(async () => {
+    const sb = getSupabase();
+    if (!sb) {
+      setPhase("unlocked");
+      return;
+    }
+    setPkBusy(true);
     setError(null);
     try {
-      const rawId = localStorage.getItem(LS_CRED);
-      if (!rawId) throw new Error("No credential");
-      await navigator.credentials.get({
-        publicKey: {
-          challenge: randomBytes(32),
-          rpId: window.location.hostname,
-          allowCredentials: [{ type: "public-key", id: b64urlToBuf(rawId) }],
-          userVerification: "required",
-          timeout: 60000,
-        },
-      });
+      const { error } = await sb.auth.registerPasskey();
+      if (error) throw error;
+      localStorage.setItem(PK_FLAG, "1");
+      setPkEnrolled(true);
       setPhase("unlocked");
     } catch (e) {
-      setError("Face ID failed. Try again or use email.");
+      setError("Couldn't set up Face ID here. You can still use email.");
       console.error(e);
     } finally {
-      setBusy(false);
+      setPkBusy(false);
     }
   }, []);
 
@@ -146,9 +105,7 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
     }
     setBusy(true);
     const res =
-      mode === "in"
-        ? await signIn(em, password)
-        : await signUp(em, password);
+      mode === "in" ? await signIn(em, password) : await signUp(em, password);
     setBusy(false);
     if (res.error) {
       setError(res.error);
@@ -161,10 +118,10 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
       setMode("in");
       return;
     }
-    // signed in — offer to enrol Face ID as a shortcut if possible
-    if (webauthn && !hasCred) setPhase("offerFace");
+    // signed in — offer to set up a passkey for next time
+    if (webauthn && isSupabaseConfigured()) setPhase("offerPk");
     else setPhase("unlocked");
-  }, [email, password, mode, signIn, signUp, webauthn, hasCred]);
+  }, [email, password, mode, signIn, signUp, webauthn]);
 
   if (phase === "unlocked") return <>{children}</>;
 
@@ -176,18 +133,20 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // ---- offer Face ID after email login ----
-  if (phase === "offerFace") {
+  if (phase === "offerPk") {
     return (
-      <Shell title="Set up Face ID?" subtitle="Unlock faster next time — no password needed on this device.">
+      <Shell
+        title="Set up Face ID?"
+        subtitle="Sign in with your face next time — no password to type on this device."
+      >
         {error && <ErrorText>{error}</ErrorText>}
         <div className="mt-8 w-full flex flex-col gap-3">
           <button
-            onClick={enableFace}
-            disabled={busy}
+            onClick={registerPasskey}
+            disabled={pkBusy}
             className="w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition"
           >
-            {busy ? "Setting up…" : "Enable Face ID"}
+            {pkBusy ? "Setting up…" : "Enable Face ID"}
           </button>
           <button
             onClick={() => setPhase("unlocked")}
@@ -200,31 +159,29 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // ---- locked: email + optional Face ID ----
   return (
     <Shell
       title={mode === "in" ? "Welcome back" : "Create your login"}
       subtitle="This coach is private to Utkarsh. Sign in to continue."
     >
-      {hasCred && (
-        <button
-          onClick={unlockFace}
-          disabled={busy}
-          className="mt-6 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
-        >
-          <FaceMini /> {busy ? "Scanning…" : "Unlock with Face ID"}
-        </button>
+      {webauthn && isSupabaseConfigured() && (
+        <>
+          <button
+            onClick={passkeySignIn}
+            disabled={pkBusy}
+            className="mt-6 w-full rounded-2xl bg-[var(--ink)] text-white font-semibold py-4 disabled:opacity-50 active:scale-[0.98] transition flex items-center justify-center gap-2"
+          >
+            <FaceMini /> {pkBusy ? "Scanning…" : "Sign in with Face ID"}
+          </button>
+          <div className="my-4 flex items-center gap-3 text-[var(--ink-faint)]">
+            <span className="h-px flex-1 bg-[var(--line)]" />
+            <span className="text-xs font-semibold">or use email</span>
+            <span className="h-px flex-1 bg-[var(--line)]" />
+          </div>
+        </>
       )}
 
-      {hasCred && (
-        <div className="my-4 flex items-center gap-3 text-[var(--ink-faint)]">
-          <span className="h-px flex-1 bg-[var(--line)]" />
-          <span className="text-xs font-semibold">or use email</span>
-          <span className="h-px flex-1 bg-[var(--line)]" />
-        </div>
-      )}
-
-      <div className={hasCred ? "" : "mt-6"}>
+      <div className={webauthn && isSupabaseConfigured() ? "" : "mt-6"}>
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -258,13 +215,20 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
           }}
           className="mt-3 w-full text-sm font-semibold text-[var(--violet-ink)]"
         >
-          {mode === "in" ? "First time? Create account" : "Have an account? Sign in"}
+          {mode === "in"
+            ? "First time? Create account"
+            : "Have an account? Sign in"}
         </button>
       </div>
 
       {!isSupabaseConfigured() && (
         <p className="mt-3 text-xs text-[var(--ink-faint)] text-center">
-          Email login needs Supabase env vars configured.
+          Login needs Supabase env vars configured.
+        </p>
+      )}
+      {pkEnrolled && (
+        <p className="mt-3 text-[11px] text-[var(--ink-faint)] text-center">
+          Face ID is set up on this device — tap the button above.
         </p>
       )}
       {error && <ErrorText>{error}</ErrorText>}

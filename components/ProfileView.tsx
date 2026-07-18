@@ -90,6 +90,7 @@ export default function ProfileView() {
   function resetLock() {
     localStorage.removeItem("copilot.faceid.status");
     localStorage.removeItem("copilot.faceid.cred");
+    localStorage.removeItem("copilot.pk.enrolled");
     location.reload();
   }
 
