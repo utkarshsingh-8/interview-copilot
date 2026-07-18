@@ -11,6 +11,7 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://interview-copilot-u.vercel.app"),
   title: "Interview Copilot",
   description: "Utkarsh's personal AI interview coach — grounded in his resume.",
   manifest: "/manifest.webmanifest",
