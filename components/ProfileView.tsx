@@ -1,7 +1,7 @@
 "use client";
 import { authedFetch } from "@/lib/authedFetch";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Avatar3D from "@/components/Avatar3D";
 import ResumeEditor from "@/components/ResumeEditor";
 import ResumeImport from "@/components/ResumeImport";
@@ -299,6 +299,7 @@ export default function ProfileView() {
       </h2>
       <div className="flex flex-col gap-2">
         <AuthPanel />
+        <LockModeToggle />
         <button
           onClick={async () => {
             if (!("Notification" in window)) {
@@ -333,6 +334,46 @@ export default function ProfileView() {
       <p className="mt-6 text-center text-[11px] text-[var(--ink-faint)]">
         Interview Copilot · built for {resume.name}
       </p>
+    </div>
+  );
+}
+
+function LockModeToggle() {
+  const [always, setAlways] = useState(true);
+  useEffect(() => {
+    setAlways((localStorage.getItem("copilot.lockmode") || "always") === "always");
+  }, []);
+  function toggle() {
+    const next = !always;
+    setAlways(next);
+    localStorage.setItem("copilot.lockmode", next ? "always" : "session");
+  }
+  return (
+    <div className="card-flat px-4 py-3.5 flex items-center justify-between">
+      <div className="pr-3">
+        <p className="text-sm font-semibold text-[var(--ink)]">
+          🔐 Face ID every time
+        </p>
+        <p className="text-xs text-[var(--ink-faint)]">
+          {always
+            ? "Locks on every app open"
+            : "Stay signed in between opens"}
+        </p>
+      </div>
+      <button
+        onClick={toggle}
+        role="switch"
+        aria-checked={always}
+        className={`h-7 w-12 shrink-0 rounded-full transition ${
+          always ? "bg-[var(--violet)]" : "bg-[var(--surface-muted)]"
+        }`}
+      >
+        <span
+          className={`block h-6 w-6 rounded-full bg-white shadow transition-transform ${
+            always ? "translate-x-[22px]" : "translate-x-[2px]"
+          }`}
+        />
+      </button>
     </div>
   );
 }

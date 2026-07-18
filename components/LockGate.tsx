@@ -41,12 +41,18 @@ export default function LockGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!authReady) return;
+    // "always" (default) = require Face ID / login on every app open, even with
+    // a saved session. "session" = stay unlocked while the session is valid.
+    const mode =
+      (typeof window !== "undefined" &&
+        localStorage.getItem("copilot.lockmode")) ||
+      "always";
     const em = session?.user?.email?.toLowerCase();
-    if (em === ALLOWED_EMAIL) {
-      setPhase((p) => (p === "offerPk" ? p : "unlocked"));
-    } else {
-      setPhase((p) => (p === "unlocked" || p === "offerPk" ? p : "locked"));
-    }
+    setPhase((p) => {
+      if (p === "unlocked" || p === "offerPk") return p; // already past gate this launch
+      if (mode === "session" && em === ALLOWED_EMAIL) return "unlocked";
+      return "locked";
+    });
   }, [authReady, session]);
 
   const passkeySignIn = useCallback(async () => {
